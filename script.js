@@ -736,6 +736,8 @@ function handleAssignRole() {
 window.handleAssignRole = handleAssignRole;
 window.createTradeOffer = createTradeOffer;
 window.createTradeRequest = createTradeRequest;
+window.deleteItem = deleteItem;
+window.startEditItem = startEditItem;
 
 function getTradeOffers() {
     try {
