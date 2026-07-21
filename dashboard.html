@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pixel Quest Values</title>
     <link rel="stylesheet" href="style.css">
+    <script src="db.js"></script>
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
 </head>
 <body>
     <div class="warning-banner">
-        ⚠️ <strong>Ważne:</strong> Ta wersja używa localStorage - dane są przechowywane lokalnie w przeglądarce. Wersja produkcyjna wymaga backendu.
+        🌐 <strong>Online:</strong> Dane są przechowywane w chmurze — współdzielone między użytkownikami.
     </div>
     <div class="dashboard-container">
         <div id="toastContainer" class="toast-container"></div>
@@ -212,9 +215,11 @@
                         <input type="text" id="itemTier" placeholder="Tier">
                         <select id="itemRarity">
                             <option value="Common">Common</option>
+                            <option value="Uncommon">Uncommon</option>
                             <option value="Rare">Rare</option>
                             <option value="Epic">Epic</option>
                             <option value="Legendary">Legendary</option>
+                            <option value="Mythic">Mythic</option>
                         </select>
                         <input type="text" id="itemType" placeholder="Type">
                         <div id="itemImagePreview" class="image-preview"></div>
@@ -276,7 +281,5 @@
         </div>
     </div>
 
-    <script src="auth.js"></script>
-    <script src="script.js"></script>
 </body>
 </html>

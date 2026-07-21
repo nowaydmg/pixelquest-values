@@ -1,63 +1,112 @@
 # Pixel Quest Values
 
-Modern item vault for Pixel Quest game items.
+Modern item vault for Pixel Quest game items — **Supabase backend + Vercel hosting**.
 
-## ⚠️ Important Notice
+## Stack
 
-This is a **client-side demo version** that uses localStorage for data storage. 
-For production use, you need to implement a proper backend with database.
+| Warstwa | Technologia |
+|---------|-------------|
+| Frontend | HTML, CSS, Vanilla JS |
+| Baza danych | Supabase (PostgreSQL) |
+| Auth | Supabase Auth |
+| Hosting | Vercel (static + serverless API) |
+| Bezpieczeństwo | Row Level Security (RLS) |
 
-**Current limitations:**
-- Data is stored locally in browser localStorage
-- Data is not shared between users/devices
-- Clearing browser data will delete all data
-- No real authentication (localStorage-based)
+## Szybki start
 
-## Features
+### 1. Supabase — wklej SQL
 
-- **Item Management**: Add, edit, and delete items with images
-- **Trade System**: List offers and requests for items
-- **Messaging**: Direct messages between users
-- **Notifications**: Real-time notifications system
-- **Role Management**: Owner, Admin, Moderator roles
-- **Leaderboard**: User rankings with statistics
-- **Achievements**: Unlockable badges
-- **Watchlist**: Track favorite items
-- **Transaction History**: Keep track of trades
-- **Reputation System**: Rate other users
+1. Wejdź na [supabase.com](https://supabase.com) → twój projekt
+2. **SQL Editor** → New query
+3. Skopiuj całą zawartość pliku **`supabase-schema.sql`** i uruchom (Run)
 
-## Getting Started
+### 2. Supabase — wyłącz potwierdzenie email
 
-1. Clone the repository
-2. Open `index.html` in a web browser
-3. Register an account (first user gets Owner role)
-4. Start using the platform
+1. **Authentication** → **Providers** → **Email**
+2. Wyłącz **Confirm email** (dla testów lokalnych)
+3. W **Authentication** → **Settings** → dodaj do **Site URL**: `http://localhost:8080`
 
-## Roles
+### 3. Klucze API
 
-- **Owner**: Full access, can assign roles
-- **Admin**: Can manage users, ban IPs, manage items
-- **Moderator**: Can warn users
-- **User**: Basic access
+1. **Project Settings** → **API**
+2. Skopiuj **Project URL** i **anon public** key
+3. Wklej do `supabase-config.js`:
 
-## Security Notes
+```javascript
+const SUPABASE_URL = 'https://TWOJ-PROJEKT.supabase.co';
+const SUPABASE_ANON_KEY = 'twoj-anon-key';
+```
 
-This is a demo/prototype. For production:
-- Implement proper authentication (JWT, OAuth)
-- Use a real database (PostgreSQL, MongoDB)
-- Add server-side validation
-- Implement rate limiting
-- Add CSRF protection
-- Use HTTPS
-- Implement proper password hashing (bcrypt, argon2)
+### 4. Lokalnie
 
-## Tech Stack
+```bash
+npm install
+npm run dev
+```
 
-- HTML5
-- CSS3 (Custom dark theme)
-- Vanilla JavaScript
-- LocalStorage for data persistence
+Otwórz: http://localhost:8080
+
+Pierwszy zarejestrowany użytkownik dostaje rolę **owner** automatycznie.
+
+### 5. Deploy na Vercel
+
+```bash
+npm i -g vercel
+vercel
+```
+
+W Vercel Dashboard → **Settings** → **Environment Variables**:
+
+| Zmienna | Wartość |
+|---------|---------|
+| `SUPABASE_URL` | URL projektu Supabase |
+| `SUPABASE_ANON_KEY` | anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | service_role key (tylko dla API) |
+
+## API routes (Vercel)
+
+| Endpoint | Metoda | Opis |
+|----------|--------|------|
+| `/api/health` | GET | Status serwisu + połączenie z DB |
+| `/api/admin/user-action` | POST | Ban/unban użytkownika (service_role) |
+
+Przykład ban:
+
+```bash
+curl -X POST https://twoja-app.vercel.app/api/admin/user-action \
+  -H "Content-Type: application/json" \
+  -d '{"username":"gracz1","action":"ban"}'
+```
+
+## Struktura plików
+
+```
+pixel-quest-prices/
+├── index.html          # Logowanie / rejestracja
+├── dashboard.html      # Główna aplikacja
+├── auth.js             # Supabase Auth
+├── db.js               # Warstwa danych (CRUD)
+├── script.js           # UI i logika frontendu
+├── supabase-config.js  # URL + anon key
+├── supabase-schema.sql # Schema bazy — WKLEJ W SUPABASE
+├── api/
+│   ├── health.js
+│   └── admin/user-action.js
+├── vercel.json
+└── .env.example
+```
+
+## Role
+
+- **owner** — pełny dostęp, pierwszy użytkownik
+- **admin** — zarządzanie itemami, banowanie
+- **moderator** — raporty, ostrzeżenia
+- **user** — podstawowy dostęp
+
+## Logowanie
+
+Użytkownicy logują się **nickiem** (Player ID). W tle tworzony jest email: `nick@pixelquest.local`.
 
 ## License
 
-MIT License - Feel free to use and modify for your needs.
+MIT

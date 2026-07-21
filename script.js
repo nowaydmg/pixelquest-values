@@ -1,35 +1,24 @@
-const defaultItems = [
-    { icon: '📜', name: 'Ancient Scroll Fragment', corruptedPages: 42, tier: 'A', rarity: 'Rare', type: 'Crafting Material' },
-    { icon: '🪻', name: 'Cursed Amulet', corruptedPages: 88, tier: 'S', rarity: 'Epic', type: 'Accessory' },
-    { icon: '💎', name: 'Corrupted Core', corruptedPages: 56, tier: 'B', rarity: 'Rare', type: 'Crafting Material' },
-    { icon: '🔮', name: 'Dark Crystal', corruptedPages: 64, tier: 'A', rarity: 'Epic', type: 'Crafting Material' },
-    { icon: '🗡️', name: 'Enchanted Dagger', corruptedPages: 70, tier: 'A', rarity: 'Rare', type: 'Weapon' },
-    { icon: '📖', name: 'Forbidden Grimoire', corruptedPages: 95, tier: 'S', rarity: 'Epic', type: 'Quest Item' },
-    { icon: '✨', name: 'Glowing Essence', corruptedPages: 18, tier: 'C', rarity: 'Common', type: 'Crafting Material' },
-    { icon: '🛡️', name: 'Obsidian Helm', corruptedPages: 76, tier: 'A', rarity: 'Epic', type: 'Armor' },
-    { icon: '🌙', name: "Phantom's Whisper", corruptedPages: 110, tier: 'S', rarity: 'Legendary', type: 'Weapon' },
-    { icon: '🪙', name: 'Rusted Coin', corruptedPages: 10, tier: 'C', rarity: 'Common', type: 'Currency' },
-    { icon: '🧥', name: 'Shadow Cloak', corruptedPages: 72, tier: 'A', rarity: 'Epic', type: 'Armor' },
-    { icon: '🕯️', name: 'Soul Fragment', corruptedPages: 100, tier: 'S', rarity: 'Legendary', type: 'Crafting Material' },
-    { icon: '🧪', name: 'Tainted Potion', corruptedPages: 24, tier: 'B', rarity: 'Common', type: 'Consumable' },
-    { icon: '💠', name: 'Void Shard', corruptedPages: 120, tier: 'S', rarity: 'Legendary', type: 'Crafting Material' }
-];
+// Pixel Quest Values — UI layer (uses db.js + appData cache)
 
 let currentSort = { key: 'corruptedPages', direction: 'desc' };
-let editingIndex = null;
+let editingItemId = null;
 let uploadedItemImage = null;
+
+const ACHIEVEMENTS = {
+    FIRST_TRADE: 'First Trade',
+    TRADER_MASTER: 'Trader Master',
+    SOCIAL_BUTTERFLY: 'Social Butterfly',
+    HELPER: 'Helper',
+    COLLECTOR: 'Collector'
+};
+
+// --- utilities ---
 
 function showToast(title, message, type = 'info') {
     const container = document.getElementById('toastContainer');
     if (!container) return;
 
-    const icons = {
-        success: '✓',
-        error: '✕',
-        warning: '⚠',
-        info: 'ℹ'
-    };
-
+    const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.innerHTML = `
@@ -38,164 +27,94 @@ function showToast(title, message, type = 'info') {
             <div class="toast-title">${sanitizeText(title)}</div>
             <div class="toast-message">${sanitizeText(message)}</div>
         </div>
-        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
-    `;
-
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>`;
     container.appendChild(toast);
-
     setTimeout(() => {
         toast.classList.add('hiding');
         toast.addEventListener('animationend', () => toast.remove());
     }, 4000);
 }
 
-function getCurrentUser() {
-    return localStorage.getItem('currentUser') || 'guest';
-}
-
-function getRegisteredUsers() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
-        return Object.keys(stored).filter(Boolean);
-    } catch (error) {
-        return [];
-    }
-}
-
 function sanitizeText(input) {
     return String(input)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function isSafeString(input) {
-    const value = String(input);
-    const blocked = /<script|javascript:|onerror|onload|eval\(|Function\(/i;
-    return !blocked.test(value);
+    return !/<script|javascript:|onerror|onload|eval\(|Function\(/i.test(String(input));
 }
 
-function getActionLog() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('actionLog') || '[]');
-        return Array.isArray(stored) ? stored : [];
-    } catch (error) {
-        return [];
-    }
-}
-
-function saveActionLog(log) {
-    localStorage.setItem('actionLog', JSON.stringify(log));
-}
-
-function recordAction(action) {
-    const now = Date.now();
-    const log = getActionLog().filter((entry) => now - entry.timestamp < 60_000);
-    log.push({ action, timestamp: now, user: getCurrentUser() });
-    saveActionLog(log);
-}
-
-function canPerformAction(action, limit = 6, windowMs = 60_000) {
-    const now = Date.now();
-    const recent = getActionLog().filter((entry) => entry.action === action && now - entry.timestamp < windowMs);
-    return recent.length < limit;
-}
-
-function getNotifications() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('notifications') || '[]');
-        return Array.isArray(stored) ? stored : [];
-    } catch (error) {
-        return [];
-    }
-}
-
-function saveNotifications(notes) {
-    localStorage.setItem('notifications', JSON.stringify(notes));
-}
-
-function addNotification(recipient, text) {
-    const notifications = getNotifications();
-    notifications.push({
-        id: Date.now(),
-        to: recipient,
-        text: sanitizeText(text),
-        createdAt: new Date().toISOString(),
-        seen: false
-    });
-    saveNotifications(notifications);
-}
-
-function getReports() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('reports') || '[]');
-        return Array.isArray(stored) ? stored : [];
-    } catch (error) {
-        return [];
-    }
-}
-
-function saveReports(reports) {
-    localStorage.setItem('reports', JSON.stringify(reports));
-}
-
-function getPlayerRatings() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('playerRatings') || '{}');
-        return stored;
-    } catch (error) {
-        return {};
-    }
-}
-
-function savePlayerRatings(ratings) {
-    localStorage.setItem('playerRatings', JSON.stringify(ratings));
-}
-
-function ratePlayer(targetUsername, rating) {
-    const ratings = getPlayerRatings();
-    if (!ratings[targetUsername]) {
-        ratings[targetUsername] = { total: 0, count: 0, average: 0 };
-    }
-    ratings[targetUsername].total += rating;
-    ratings[targetUsername].count += 1;
-    ratings[targetUsername].average = (ratings[targetUsername].total / ratings[targetUsername].count).toFixed(1);
-    savePlayerRatings(ratings);
-}
-
-function addReport(target, reason, reporter) {
-    const reports = getReports();
-    reports.push({
-        id: Date.now(),
-        target: sanitizeText(target),
-        reason: sanitizeText(reason),
-        reporter: sanitizeText(reporter),
-        createdAt: new Date().toISOString(),
-        status: 'pending'
-    });
-    saveReports(reports);
+function getRegisteredUsers() {
+    return appData.users.map((u) => u.username);
 }
 
 function getNotificationsForUser(user) {
-    return getNotifications().filter((note) => note.to === user || note.to === 'all');
-}
-
-function clearNotification(id) {
-    const notifications = getNotifications().filter((note) => note.id !== id);
-    saveNotifications(notifications);
-    renderNotifications();
+    return appData.notifications.filter((n) => n.to === user || n.to === 'all');
 }
 
 function getPendingReports() {
-    return getReports().filter((report) => report.status === 'pending');
+    return appData.reports.filter((r) => r.status === 'pending');
 }
 
-function updateReportStatus(id, status) {
-    const reports = getReports().map((report) => (report.id === id ? { ...report, status } : report));
-    saveReports(reports);
+function hasAchievement(username, achievementId) {
+    return appData.achievements[username]?.includes(achievementId) || false;
 }
+
+function isWatched(username, itemName) {
+    return appData.watchlist[username]?.includes(itemName) || false;
+}
+
+function getUserAvatar(username) {
+    const colors = ['#8b5cf6', '#3b82f6', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#06b6d4'];
+    const hash = username.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0);
+    return { background: colors[Math.abs(hash) % colors.length], initial: username.charAt(0).toUpperCase() };
+}
+
+function sortItems(items, key, direction) {
+    const sorted = [...items];
+    sorted.sort((a, b) => {
+        let valueA = a[key];
+        let valueB = b[key];
+        if (['name', 'type', 'tier', 'rarity'].includes(key)) {
+            valueA = String(valueA || '').toLowerCase();
+            valueB = String(valueB || '').toLowerCase();
+        } else if (key === 'corruptedPages') {
+            valueA = Number(valueA || 0);
+            valueB = Number(valueB || 0);
+        }
+        if (valueA < valueB) return direction === 'asc' ? -1 : 1;
+        if (valueA > valueB) return direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+    return sorted;
+}
+
+// --- main load ---
+
+async function loadTableData(userRole) {
+    await refreshAppData();
+    const sortedItems = sortItems(appData.items, currentSort.key, currentSort.direction);
+    renderTable(sortedItems, userRole);
+    renderTradePlace();
+    renderNotifications();
+    renderReportTargets();
+    renderModeratorReports();
+    renderReportSection();
+    renderLeaderboard();
+    renderMessages();
+    renderNotificationsSection();
+    renderAccount();
+    renderAdminPanel();
+    renderRoleManager();
+    updateLastUpdate();
+}
+
+async function reloadDashboard() {
+    await loadTableData(getUserRole());
+}
+
+// --- notifications ---
 
 function renderNotifications() {
     const currentUser = getCurrentUser();
@@ -212,10 +131,9 @@ function renderNotifications() {
                 </div>
                 <div>${note.text}</div>
                 <div class="trade-actions">
-                    <button class="btn btn-secondary btn-small" type="button" onclick="clearNotification(${note.id})">Dismiss</button>
+                    <button class="btn btn-secondary btn-small" type="button" onclick="clearNotification('${note.id}')">Dismiss</button>
                 </div>
-            </div>
-        `).join('')
+            </div>`).join('')
         : '<div class="trade-empty">No notifications.</div>';
 }
 
@@ -223,9 +141,7 @@ function renderNotificationsSection() {
     const notificationsList = document.getElementById('notificationsList');
     if (!notificationsList) return;
 
-    const currentUser = getCurrentUser();
-    const notifications = getNotificationsForUser(currentUser);
-
+    const notifications = getNotificationsForUser(getCurrentUser());
     if (!notifications.length) {
         notificationsList.innerHTML = '<div class="trade-empty">No notifications yet.</div>';
         return;
@@ -238,25 +154,30 @@ function renderNotificationsSection() {
                 <div class="notification-content">${note.text}</div>
                 <div class="notification-time">${new Date(note.createdAt).toLocaleString('pl-PL')}</div>
                 <div class="notification-actions">
-                    <button class="btn btn-secondary btn-small" type="button" onclick="clearNotification(${note.id})">Dismiss</button>
+                    <button class="btn btn-secondary btn-small" type="button" onclick="clearNotification('${note.id}')">Dismiss</button>
                 </div>
-            </div>
-        `)
-        .join('');
+            </div>`).join('');
 }
+
+async function clearNotificationHandler(id) {
+    await clearNotification(id);
+    await reloadDashboard();
+}
+
+// --- reports ---
 
 function renderReportTargets() {
     const currentUser = getCurrentUser();
     const reportTargetSelect = document.getElementById('reportTargetSelect');
     if (!reportTargetSelect) return;
 
-    const users = getRegisteredUsers().filter((user) => user !== currentUser);
+    const users = getRegisteredUsers().filter((u) => u !== currentUser);
     reportTargetSelect.innerHTML = users.length
-        ? users.map((user) => `<option value="${user}">${user}</option>`).join('')
+        ? users.map((u) => `<option value="${u}">${u}</option>`).join('')
         : '<option value="">No players available</option>';
 }
 
-function submitReport() {
+async function submitReport() {
     const currentUser = getCurrentUser();
     const target = document.getElementById('reportTargetSelect')?.value;
     const reason = document.getElementById('reportReason')?.value.trim();
@@ -265,22 +186,15 @@ function submitReport() {
         showToast('Error', 'Select a player and enter a reason.', 'error');
         return;
     }
-
     if (!isSafeString(target) || !isSafeString(reason)) {
         showToast('Error', 'Unsafe characters detected.', 'error');
         return;
     }
 
-    if (!canPerformAction('submitReport', 4, 60_000)) {
-        showToast('Warning', 'Too many reports recently.', 'warning');
-        return;
-    }
-
-    recordAction('submitReport');
-    addReport(target, reason, currentUser);
-    addNotification('all', `${currentUser} submitted a report against ${target}.`);
+    await addReport({ target, reason, reporter: currentUser });
+    await addNotification('all', `${currentUser} submitted a report against ${target}.`);
     document.getElementById('reportReason').value = '';
-    renderReportTargets();
+    await reloadDashboard();
     showToast('Success', 'Report submitted successfully.', 'success');
 }
 
@@ -299,23 +213,21 @@ function renderModeratorReports() {
                 <div>${sanitizeText(report.reason)}</div>
                 <div class="trade-offer-meta">Reporter: ${sanitizeText(report.reporter)}</div>
                 <div class="trade-actions">
-                    <button class="btn btn-primary btn-small" type="button" onclick="handleReportOutcome(${report.id}, 'approved')">Approve</button>
-                    <button class="btn btn-secondary btn-small" type="button" onclick="handleReportOutcome(${report.id}, 'rejected')">Reject</button>
+                    <button class="btn btn-primary btn-small" type="button" onclick="handleReportOutcome('${report.id}', 'approved')">Approve</button>
+                    <button class="btn btn-secondary btn-small" type="button" onclick="handleReportOutcome('${report.id}', 'rejected')">Reject</button>
                 </div>
-            </div>
-        `).join('')
+            </div>`).join('')
         : '<div class="trade-empty">No pending reports.</div>';
 }
 
-function handleReportOutcome(id, status) {
-    updateReportStatus(id, status);
-    const report = getReports().find((reportItem) => reportItem.id === id);
+async function handleReportOutcome(id, status) {
+    await updateReportStatus(id, status);
+    const report = appData.reports.find((r) => r.id === id);
     if (report) {
-        addNotification(report.reporter, `Your report against ${report.target} was ${status}.`);
-        addNotification('all', `Report against ${report.target} was ${status}.`);
+        await addNotification(report.reporter, `Your report against ${report.target} was ${status}.`);
+        await addNotification('all', `Report against ${report.target} was ${status}.`);
     }
-    renderModeratorReports();
-    renderReportSection();
+    await reloadDashboard();
 }
 
 function renderReportSection() {
@@ -323,16 +235,14 @@ function renderReportSection() {
     if (!reportList) return;
 
     const currentUser = getCurrentUser();
-    const userRole = localStorage.getItem('userRole') || 'user';
-    const reports = getReports();
-
-    let filteredReports = reports;
-    if (userRole !== 'moderator' && userRole !== 'admin' && userRole !== 'owner') {
-        filteredReports = reports.filter((report) => report.reporter === currentUser);
+    const userRole = getUserRole();
+    let filtered = appData.reports;
+    if (!['moderator', 'admin', 'owner'].includes(userRole)) {
+        filtered = appData.reports.filter((r) => r.reporter === currentUser);
     }
 
-    reportList.innerHTML = filteredReports.length
-        ? filteredReports.map((report) => `
+    reportList.innerHTML = filtered.length
+        ? filtered.map((report) => `
             <div class="trade-offer report-card">
                 <div class="trade-offer-header">
                     <strong>Report: ${sanitizeText(report.target)}</strong>
@@ -343,21 +253,17 @@ function renderReportSection() {
                     <span>Reporter: ${sanitizeText(report.reporter)}</span>
                     <span>${new Date(report.createdAt).toLocaleString('pl-PL')}</span>
                 </div>
-            </div>
-        `).join('')
+            </div>`).join('')
         : '<div class="trade-empty">No reports available.</div>';
 }
+
+// --- leaderboard ---
 
 function renderLeaderboard() {
     const leaderboardList = document.getElementById('leaderboardList');
     if (!leaderboardList) return;
 
-    const ratings = getPlayerRatings();
-    const entries = Object.entries(ratings).map(([username, data]) => ({
-        username,
-        ...data
-    }));
-
+    const entries = Object.entries(appData.ratings).map(([username, data]) => ({ username, ...data }));
     entries.sort((a, b) => parseFloat(b.average) - parseFloat(a.average));
 
     leaderboardList.innerHTML = entries.length
@@ -366,13 +272,11 @@ function renderLeaderboard() {
             const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
             const stars = '★'.repeat(Math.round(parseFloat(entry.average)));
             const avatar = getUserAvatar(entry.username);
-            const achievements = getAchievements()[entry.username]?.length || 0;
+            const achievements = appData.achievements[entry.username]?.length || 0;
             return `
                 <div class="leaderboard-item">
                     <div class="leaderboard-rank ${rankClass}">${rank}</div>
-                    <div class="leaderboard-avatar" style="background: ${avatar.background};">
-                        ${avatar.initial}
-                    </div>
+                    <div class="leaderboard-avatar" style="background: ${avatar.background};">${avatar.initial}</div>
                     <div class="leaderboard-player">
                         <span class="leaderboard-name">${sanitizeText(entry.username)}</span>
                         <div class="leaderboard-stats">
@@ -385,192 +289,48 @@ function renderLeaderboard() {
                         <span class="leaderboard-score">${entry.average}</span>
                         <span class="leaderboard-count">(${entry.count})</span>
                     </div>
-                </div>
-            `;
+                </div>`;
         }).join('')
         : '<div class="trade-empty">No ratings yet. Complete trades to get rated!</div>';
 }
 
-function getUserAvatar(username) {
-    const colors = ['#8b5cf6', '#3b82f6', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#06b6d4'];
-    const hash = username.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0);
-    const color = colors[Math.abs(hash) % colors.length];
-    const initial = username.charAt(0).toUpperCase();
-    return {
-        background: color,
-        initial: initial
-    };
-}
-
-function getTransactionHistory() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
-        return Array.isArray(stored) ? stored : [];
-    } catch (error) {
-        return [];
-    }
-}
-
-function saveTransactionHistory(history) {
-    localStorage.setItem('transactionHistory', JSON.stringify(history));
-}
-
-function addTransaction(offerId, buyer, seller, item, price) {
-    const history = getTransactionHistory();
-    history.push({
-        id: Date.now(),
-        offerId,
-        buyer,
-        seller,
-        item,
-        price,
-        createdAt: new Date().toISOString(),
-        rating: null
-    });
-    saveTransactionHistory(history);
-}
-
-function rateTransaction(transactionId, rating, comment) {
-    const history = getTransactionHistory();
-    const transaction = history.find(t => t.id === transactionId);
-    if (transaction) {
-        transaction.rating = rating;
-        transaction.comment = comment;
-        saveTransactionHistory(history);
-        
-        // Update user ratings
-        const ratings = getPlayerRatings();
-        const targetUser = transaction.seller;
-        if (!ratings[targetUser]) {
-            ratings[targetUser] = { total: 0, count: 0 };
-        }
-        ratings[targetUser].total += rating;
-        ratings[targetUser].count += 1;
-        savePlayerRatings(ratings);
-        
-        showToast('Success', 'Rating submitted!', 'success');
-    }
-}
-
-function getWatchlist() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('watchlist') || '{}');
-        return stored;
-    } catch (error) {
-        return {};
-    }
-}
-
-function saveWatchlist(watchlist) {
-    localStorage.setItem('watchlist', JSON.stringify(watchlist));
-}
-
-function toggleWatchlist(username, itemName) {
-    const watchlist = getWatchlist();
-    if (!watchlist[username]) {
-        watchlist[username] = [];
-    }
-    const index = watchlist[username].indexOf(itemName);
-    if (index > -1) {
-        watchlist[username].splice(index, 1);
-        showToast('Removed', `${itemName} removed from watchlist`, 'success');
-    } else {
-        watchlist[username].push(itemName);
-        showToast('Added', `${itemName} added to watchlist`, 'success');
-    }
-    saveWatchlist(watchlist);
-}
-
-function isWatched(username, itemName) {
-    const watchlist = getWatchlist();
-    return watchlist[username]?.includes(itemName) || false;
-}
-
-function getAchievements() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('achievements') || '{}');
-        return stored;
-    } catch (error) {
-        return {};
-    }
-}
-
-function saveAchievements(achievements) {
-    localStorage.setItem('achievements', JSON.stringify(achievements));
-}
-
-function unlockAchievement(username, achievementId) {
-    const achievements = getAchievements();
-    if (!achievements[username]) {
-        achievements[username] = [];
-    }
-    if (!achievements[username].includes(achievementId)) {
-        achievements[username].push(achievementId);
-        saveAchievements(achievements);
-        showToast('Achievement Unlocked!', achievementId, 'success');
-    }
-}
-
-function hasAchievement(username, achievementId) {
-    const achievements = getAchievements();
-    return achievements[username]?.includes(achievementId) || false;
-}
-
-const ACHIEVEMENTS = {
-    FIRST_TRADE: 'First Trade',
-    TRADER_MASTER: 'Trader Master',
-    SOCIAL_BUTTERFLY: 'Social Butterfly',
-    HELPER: 'Helper',
-    COLLECTOR: 'Collector'
-};
+// --- messages ---
 
 function renderMessages() {
     const messagesList = document.getElementById('messagesList');
     if (!messagesList) return;
 
     const currentUser = getCurrentUser();
-    const messages = getDirectMessages();
-    const users = getRegisteredUsers();
-
     const conversations = {};
-    messages.forEach((msg) => {
+    appData.messages.forEach((msg) => {
         const otherUser = msg.from === currentUser ? msg.to : msg.from;
-        if (!conversations[otherUser]) {
-            conversations[otherUser] = [];
-        }
+        if (!conversations[otherUser]) conversations[otherUser] = [];
         conversations[otherUser].push(msg);
     });
 
-    const conversationKeys = Object.keys(conversations).sort((a, b) => {
+    const keys = Object.keys(conversations).sort((a, b) => {
         const lastA = conversations[a][conversations[a].length - 1].createdAt;
         const lastB = conversations[b][conversations[b].length - 1].createdAt;
         return new Date(lastB) - new Date(lastA);
     });
 
-    messagesList.innerHTML = conversationKeys.length
-        ? conversationKeys.map((username) => {
-            const userMessages = conversations[username];
-            const lastMessage = userMessages[userMessages.length - 1];
+    messagesList.innerHTML = keys.length
+        ? keys.map((username) => {
+            const msgs = conversations[username];
+            const lastMessage = msgs[msgs.length - 1];
             const preview = sanitizeText(lastMessage.text).substring(0, 50) + (lastMessage.text.length > 50 ? '...' : '');
             const avatar = getUserAvatar(username);
-            const lastSeen = localStorage.getItem(`lastSeen_${username}`) || Date.now();
-            const isOnline = (Date.now() - parseInt(lastSeen)) < 300000; // 5 minutes
             return `
                 <div class="conversation-item" onclick="openConversation('${username.replace(/'/g, "\\'")}')">
-                    <div class="conversation-avatar" style="background: ${avatar.background};">
-                        ${avatar.initial}
-                        ${isOnline ? '<div class="online-indicator"></div>' : ''}
-                    </div>
+                    <div class="conversation-avatar" style="background: ${avatar.background};">${avatar.initial}</div>
                     <div class="conversation-content">
                         <div class="conversation-header">
                             <strong>${sanitizeText(username)}</strong>
                             <span class="conversation-time">${new Date(lastMessage.createdAt).toLocaleString('pl-PL')}</span>
                         </div>
                         <div class="conversation-preview">${preview}</div>
-                        ${isOnline ? '<div class="online-status">Online</div>' : ''}
                     </div>
-                </div>
-            `;
+                </div>`;
         }).join('')
         : '<div class="trade-empty">No messages yet.</div>';
 }
@@ -578,11 +338,9 @@ function renderMessages() {
 function openConversation(username) {
     const messagesList = document.getElementById('messagesList');
     const currentUser = getCurrentUser();
-    const messages = getDirectMessages();
-
-    const conversation = messages.filter((msg) => {
-        return (msg.from === currentUser && msg.to === username) || (msg.from === username && msg.to === currentUser);
-    }).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    const conversation = appData.messages
+        .filter((msg) => (msg.from === currentUser && msg.to === username) || (msg.from === username && msg.to === currentUser))
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
     messagesList.innerHTML = `
         <div class="conversation-view">
@@ -596,79 +354,28 @@ function openConversation(username) {
                         <div class="dm-message-meta">${msg.from === currentUser ? 'You' : sanitizeText(msg.from)}</div>
                         <div>${sanitizeText(msg.text)}</div>
                         <div class="dm-message-time">${new Date(msg.createdAt).toLocaleString('pl-PL')}</div>
-                    </div>
-                `).join('')}
+                    </div>`).join('')}
             </div>
             <div class="conversation-reply">
                 <textarea id="quickReplyMessage" rows="2" placeholder="Quick reply..."></textarea>
                 <button class="btn btn-primary" onclick="quickReply('${username.replace(/'/g, "\\'")}')">Send</button>
             </div>
-        </div>
-    `;
+        </div>`;
 }
 
-function quickReply(username) {
+async function quickReply(username) {
     const text = document.getElementById('quickReplyMessage')?.value.trim();
-    if (!text) {
-        showToast('Error', 'Write a message first.', 'error');
-        return;
-    }
+    if (!text) { showToast('Error', 'Write a message first.', 'error'); return; }
 
     const currentUser = getCurrentUser();
-    const messages = getDirectMessages();
-    messages.push({
-        id: Date.now(),
-        from: currentUser,
-        to: username,
-        text: sanitizeText(text),
-        createdAt: new Date().toISOString()
-    });
-
-    saveDirectMessages(messages);
-    addNotification(username, `New DM from ${currentUser}.`);
+    await addMessage({ from: currentUser, to: username, text: sanitizeText(text) });
+    await addNotification(username, `New DM from ${currentUser}.`);
+    await reloadDashboard();
     openConversation(username);
     showToast('Success', 'Message sent!', 'success');
 }
 
-function filterMessages() {
-    const query = document.getElementById('messagesSearchInput')?.value.trim().toLowerCase();
-    const conversationItems = document.querySelectorAll('.conversation-item');
-
-    conversationItems.forEach((item) => {
-        const text = item.textContent.toLowerCase();
-        item.style.display = text.includes(query) ? '' : 'none';
-    });
-}
-
-function filterNotifications() {
-    const query = document.getElementById('notificationsSearchInput')?.value.trim().toLowerCase();
-    const notificationCards = document.querySelectorAll('.notification-card');
-
-    notificationCards.forEach((card) => {
-        const text = card.textContent.toLowerCase();
-        card.style.display = text.includes(query) ? '' : 'none';
-    });
-}
-
-function filterOffers() {
-    const query = document.getElementById('offersSearchInput')?.value.trim().toLowerCase();
-    const offerItems = document.querySelectorAll('#tradeOffersList .trade-offer');
-
-    offerItems.forEach((item) => {
-        const text = item.textContent.toLowerCase();
-        item.style.display = text.includes(query) ? '' : 'none';
-    });
-}
-
-function filterRequests() {
-    const query = document.getElementById('requestsSearchInput')?.value.trim().toLowerCase();
-    const requestItems = document.querySelectorAll('#tradeRequestsList .trade-offer');
-
-    requestItems.forEach((item) => {
-        const text = item.textContent.toLowerCase();
-        item.style.display = text.includes(query) ? '' : 'none';
-    });
-}
+// --- admin ---
 
 function renderAdminPanel() {
     const currentUser = getCurrentUser();
@@ -676,409 +383,134 @@ function renderAdminPanel() {
     const bannedList = document.getElementById('bannedIpList');
     const userSummary = document.getElementById('adminUserSummary');
 
-    const users = getAllUsers().filter((user) => user.username !== currentUser);
+    const users = appData.users.filter((u) => u.username !== currentUser);
     if (userSelect) {
-        userSelect.innerHTML = users
-            .map((user) => `<option value="${user.username}">${user.username} (${user.role})</option>`)
-            .join('') || '<option value="">No players available</option>';
+        userSelect.innerHTML = users.length
+            ? users.map((u) => `<option value="${u.username}">${u.username} (${u.role})</option>`).join('')
+            : '<option value="">No players available</option>';
     }
 
     if (userSummary) {
-        const selectedUsername = userSelect?.value || users[0]?.username;
-        const selectedUser = users.find((user) => user.username === selectedUsername);
-        userSummary.innerHTML = selectedUser
-            ? `<strong>IP:</strong> ${selectedUser.ip}<br><strong>Warnings:</strong> ${selectedUser.warnings}<br><strong>Banned:</strong> ${selectedUser.banned ? 'Yes' : 'No'}`
+        const selected = userSelect?.value || users[0]?.username;
+        const user = users.find((u) => u.username === selected);
+        userSummary.innerHTML = user
+            ? `<strong>IP:</strong> ${user.ip}<br><strong>Warnings:</strong> ${user.warnings}<br><strong>Banned:</strong> ${user.banned ? 'Yes' : 'No'}`
             : '<em>Select a player to view details.</em>';
     }
 
     if (bannedList) {
-        const bannedIps = getBannedIps();
-        bannedList.innerHTML = bannedIps.length
-            ? bannedIps.map((ip) => `<div class="ban-row"><span>${ip}</span><button type="button" class="btn btn-secondary btn-small" onclick="handleUnbanIp('${ip}')">Unban</button></div>`).join('')
+        bannedList.innerHTML = appData.bannedIps.length
+            ? appData.bannedIps.map((ip) => `<div class="ban-row"><span>${ip}</span><button type="button" class="btn btn-secondary btn-small" onclick="handleUnbanIp('${ip}')">Unban</button></div>`).join('')
             : '<div class="empty-state">No banned IPs.</div>';
     }
 }
+
+async function handleUnbanIp(ip) {
+    await removeBannedIp(ip);
+    await reloadDashboard();
+    showToast('Success', `${ip} has been unbanned.`, 'success');
+}
+
+async function handleAdminWarn() {
+    const username = document.getElementById('adminUserSelect')?.value;
+    if (!username) { showToast('Error', 'Select a player to warn.', 'error'); return; }
+
+    const user = appData.users.find((u) => u.username === username);
+    if (user) {
+        await updateUserWarnings(username, (user.warnings || 0) + 1);
+        await reloadDashboard();
+        showToast('Success', `${username} has been warned.`, 'success');
+    }
+}
+
+function renderRoleManager() {
+    const currentUser = getCurrentUser();
+    const userSelect = document.getElementById('roleUserSelect');
+    const roleList = document.getElementById('roleManagerList');
+    if (!userSelect || !roleList) return;
+
+    const users = appData.users;
+    userSelect.innerHTML = users.filter((u) => u.username !== currentUser).map((u) => `<option value="${u.username}">${u.username}</option>`).join('') || '<option value="">No players available</option>';
+    roleList.innerHTML = users.map((u) => `<div class="role-row"><span>${u.username}</span><span class="role-badge">${u.role}</span></div>`).join('');
+}
+
+async function handleAssignRole() {
+    const username = document.getElementById('roleUserSelect')?.value;
+    const role = document.getElementById('roleSelect')?.value;
+    const userRole = getUserRole();
+
+    if (!username || !role) { showToast('Error', 'Select a player and role first.', 'error'); return; }
+    if (role === 'owner' && userRole !== 'owner') { showToast('Error', 'Only owner can assign owner role.', 'error'); return; }
+
+    const ok = await updateUserRole(username, role);
+    if (ok) {
+        await reloadDashboard();
+        showToast('Success', `Updated ${username} to ${role}.`, 'success');
+    } else {
+        showToast('Error', 'Failed to update role.', 'error');
+    }
+}
+
+// --- account ---
 
 function renderAccount() {
     const accountContent = document.getElementById('accountContent');
     if (!accountContent) return;
 
     const currentUser = getCurrentUser();
-    const userRole = localStorage.getItem('userRole') || 'user';
-    const ratings = getPlayerRatings();
-    const userRating = ratings[currentUser] || { average: 0, count: 0 };
-    const offers = getTradeOffers().filter((o) => o.seller === currentUser);
-    const requests = getTradeRequests().filter((r) => r.requester === currentUser);
-
-    const stored = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
-    const userData = stored[currentUser] || {};
-
-    // Generate real UserID based on username hash
-    const userId = userData.userId || Math.abs(currentUser.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0));
-    
-    // Use real registration date or current date
-    const registered = userData.registered || new Date().toISOString();
-    
-    // Calculate real time spent based on localStorage timestamps
-    const loginTime = localStorage.getItem('loginTime') || Date.now();
-    const timeSpent = Math.floor((Date.now() - parseInt(loginTime)) / 1000);
-    
-    // Count real activity from localStorage
-    const posts = userData.posts || 0;
-    const likes = userData.likes || 0;
-    const views = userData.views || 0;
-    const awards = userData.awards || 0;
+    const userRole = getUserRole();
+    const userRating = appData.ratings[currentUser] || { average: '0.0', count: 0 };
+    const offers = appData.tradeOffers.filter((o) => o.seller === currentUser);
+    const requests = appData.tradeRequests.filter((r) => r.requester === currentUser);
+    const profile = appData.users.find((u) => u.username === currentUser);
+    const userId = profile?.id?.slice(0, 8) || '--------';
+    const registered = profile?.createdAt || new Date().toISOString();
 
     accountContent.innerHTML = `
         <div class="account-grid">
             <div class="account-card profile-header">
-                <div class="profile-avatar">
-                    <div class="avatar-placeholder">${sanitizeText(currentUser.charAt(0).toUpperCase())}</div>
-                </div>
+                <div class="profile-avatar"><div class="avatar-placeholder">${sanitizeText(currentUser.charAt(0).toUpperCase())}</div></div>
                 <div class="profile-info">
                     <h2>${sanitizeText(currentUser)}</h2>
                     <span class="role-badge">${userRole}</span>
-                    <div class="profile-status">Offline</div>
                 </div>
             </div>
-
             <div class="account-card">
                 <h3>Profile Info</h3>
                 <div class="profile-stats-grid">
-                    <div class="stat-item">
-                        <span class="stat-label">UserID</span>
-                        <span class="stat-value">#${userId}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Registered</span>
-                        <span class="stat-value">${new Date(registered).toLocaleDateString('pl-PL')}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Rating</span>
-                        <span class="stat-value">${userRating.average} ★</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Awards</span>
-                        <span class="stat-value">${awards}</span>
-                    </div>
+                    <div class="stat-item"><span class="stat-label">UserID</span><span class="stat-value">#${userId}</span></div>
+                    <div class="stat-item"><span class="stat-label">Registered</span><span class="stat-value">${new Date(registered).toLocaleDateString('pl-PL')}</span></div>
+                    <div class="stat-item"><span class="stat-label">Rating</span><span class="stat-value">${userRating.average} ★</span></div>
                 </div>
             </div>
-
             <div class="account-card">
-                <h3>Activity</h3>
-                <div class="profile-stats-grid">
-                    <div class="stat-item">
-                        <span class="stat-label">Time Spent</span>
-                        <span class="stat-value">${Math.floor(timeSpent / 3600)}h ${Math.floor((timeSpent % 3600) / 60)}m</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Trade Offers</span>
-                        <span class="stat-value">${offers.length}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Trade Requests</span>
-                        <span class="stat-value">${requests.length}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Total Views</span>
-                        <span class="stat-value">${views}</span>
-                    </div>
-                </div>
+                <h3>Your Trade Offers (${offers.length})</h3>
+                <div class="account-list">${offers.length ? offers.map((o) => `<div class="account-item"><strong>${sanitizeText(o.itemName)}</strong><span>${sanitizeText(o.price || 'Open')}</span></div>`).join('') : '<div class="trade-empty">No active offers</div>'}</div>
             </div>
-
             <div class="account-card">
-                <h3>Your Trade Offers</h3>
-                <div class="account-stats">
-                    <div>Active offers: ${offers.length}</div>
-                </div>
-                <div class="account-list">
-                    ${offers.length ? offers.map((o) => `
-                        <div class="account-item">
-                            <strong>${sanitizeText(o.itemName)}</strong>
-                            <span>${sanitizeText(o.price || 'Open to trade')}</span>
-                            <small>${new Date(o.createdAt).toLocaleString('pl-PL')}</small>
-                        </div>
-                    `).join('') : '<div class="trade-empty">No active offers</div>'}
-                </div>
+                <h3>Your Trade Requests (${requests.length})</h3>
+                <div class="account-list">${requests.length ? requests.map((r) => `<div class="account-item"><strong>${sanitizeText(r.itemName)}</strong><span>Qty: ${r.quantity}</span></div>`).join('') : '<div class="trade-empty">No active requests</div>'}</div>
             </div>
-
-            <div class="account-card">
-                <h3>Your Trade Requests</h3>
-                <div class="account-stats">
-                    <div>Active requests: ${requests.length}</div>
-                </div>
-                <div class="account-list">
-                    ${requests.length ? requests.map((r) => `
-                        <div class="account-item">
-                            <strong>${sanitizeText(r.itemName)}</strong>
-                            <span>Qty: ${r.quantity}</span>
-                            <small>${new Date(r.createdAt).toLocaleString('pl-PL')}</small>
-                        </div>
-                    `).join('') : '<div class="trade-empty">No active requests</div>'}
-                </div>
-            </div>
-
             <div class="account-card">
                 <h3>Achievements</h3>
-                <div class="account-stats">
-                    <div>Unlocked: ${getAchievements()[currentUser]?.length || 0}/5</div>
-                </div>
-                <div class="account-list">
-                    ${Object.values(ACHIEVEMENTS).map(achievement => {
-                        const unlocked = hasAchievement(currentUser, achievement);
-                        return `
-                            <div class="account-item ${unlocked ? 'achievement-unlocked' : 'achievement-locked'}">
-                                <strong>${achievement}</strong>
-                                ${unlocked ? '✓' : '🔒'}
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
+                <div class="account-list">${Object.values(ACHIEVEMENTS).map((a) => `<div class="account-item ${hasAchievement(currentUser, a) ? 'achievement-unlocked' : 'achievement-locked'}"><strong>${a}</strong>${hasAchievement(currentUser, a) ? ' ✓' : ' 🔒'}</div>`).join('')}</div>
             </div>
-
-            <div class="account-card">
-                <h3>Transaction History</h3>
-                <div class="account-stats">
-                    <div>Total transactions: ${getTransactionHistory().length}</div>
-                </div>
-                <div class="account-list">
-                    ${getTransactionHistory().length ? getTransactionHistory().slice(0, 5).map((t) => `
-                        <div class="account-item">
-                            <strong>${sanitizeText(t.item)}</strong>
-                            <span>${sanitizeText(t.price || 'N/A')}</span>
-                            <small>${new Date(t.createdAt).toLocaleString('pl-PL')}</small>
-                        </div>
-                    `).join('') : '<div class="trade-empty">No transactions yet</div>'}
-                </div>
-            </div>
-        </div>
-    `;
+        </div>`;
 }
 
-function renderRoleManager() {
-    const currentUser = localStorage.getItem('currentUser');
-    const userSelect = document.getElementById('roleUserSelect');
-    const roleList = document.getElementById('roleManagerList');
-    const messageBox = document.getElementById('roleAssignmentMessage');
-    if (!userSelect || !roleList) return;
-
-    const users = getAllUsers();
-    const options = users
-        .filter((user) => user.username !== currentUser)
-        .map((user) => `<option value="${user.username}">${user.username}</option>`)
-        .join('');
-
-    userSelect.innerHTML = options || '<option value="">No players available</option>';
-    roleList.innerHTML = users
-        .map((user) => `
-            <div class="role-row">
-                <span>${user.username}</span>
-                <span class="role-badge">${user.role}</span>
-            </div>
-        `)
-        .join('');
-
-    if (messageBox) {
-        messageBox.textContent = '';
-        messageBox.className = 'auth-message';
-    }
-}
-
-function getAllUsers() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
-        return Object.entries(stored).map(([username, data]) => ({
-            username,
-            role: data.role || 'user',
-            ip: data.ip || 'unknown',
-            warnings: data.warnings || 0,
-            banned: Boolean(data.banned)
-        }));
-    } catch (error) {
-        return [];
-    }
-}
-
-function getBannedIps() {
-    try {
-        const stored = window.localStorage.getItem('bannedIps');
-        return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-        return [];
-    }
-}
-
-function handleUnbanIp(ip) {
-    const ips = getBannedIps().filter((entry) => entry !== ip);
-    window.localStorage.setItem('bannedIps', JSON.stringify(ips));
-    renderAdminPanel();
-    showToast('Success', `${ip} has been unbanned.`, 'success');
-}
-
-function handleAdminWarn() {
-    const username = document.getElementById('adminUserSelect')?.value;
-    if (!username) {
-        showToast('Error', 'Select a player to warn.', 'error');
-        return;
-    }
-    const users = getAllUsers();
-    const user = users.find(u => u.username === username);
-    if (user) {
-        user.warnings = (user.warnings || 0) + 1;
-        const stored = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
-        stored[username] = { ...stored[username], warnings: user.warnings };
-        localStorage.setItem('registeredUsers', JSON.stringify(stored));
-        renderAdminPanel();
-        showToast('Success', `${username} has been warned.`, 'success');
-    }
-}
-
-function handleAssignRole() {
-    const username = document.getElementById('roleUserSelect')?.value;
-    const role = document.getElementById('roleSelect')?.value;
-    const userRole = localStorage.getItem('userRole');
-
-    console.log('handleAssignRole called', { username, role, userRole });
-
-    if (!username || !role) {
-        showToast('Error', 'Select a player and role first.', 'error');
-        return;
-    }
-
-    if (role === 'owner' && userRole !== 'owner') {
-        showToast('Error', 'Only owner can assign owner role.', 'error');
-        return;
-    }
-
-    const stored = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
-    if (stored[username]) {
-        stored[username].role = role;
-        localStorage.setItem('registeredUsers', JSON.stringify(stored));
-        renderRoleManager();
-        showToast('Success', `Updated ${username} to ${role}.`, 'success');
-    }
-}
-
-function getTradeOffers() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('tradeOffers') || '[]');
-        return Array.isArray(stored) ? stored : [];
-    } catch (error) {
-        return [];
-    }
-}
-
-function saveTradeOffers(offers) {
-    localStorage.setItem('tradeOffers', JSON.stringify(offers));
-}
-
-function getTradeRequests() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('tradeRequests') || '[]');
-        return Array.isArray(stored) ? stored : [];
-    } catch (error) {
-        return [];
-    }
-}
-
-function saveTradeRequests(requests) {
-    localStorage.setItem('tradeRequests', JSON.stringify(requests));
-}
-
-function getDirectMessages() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('directMessages') || '[]');
-        return Array.isArray(stored) ? stored : [];
-    } catch (error) {
-        return [];
-    }
-}
-
-function saveDirectMessages(messages) {
-    localStorage.setItem('directMessages', JSON.stringify(messages));
-}
-
-function getItems() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('items'));
-        return Array.isArray(stored) ? stored : defaultItems;
-    } catch (error) {
-        return defaultItems;
-    }
-}
-
-function saveItems(items) {
-    localStorage.setItem('items', JSON.stringify(items));
-}
-
-function loadTableData(userRole) {
-    const items = getItems();
-    const sortedItems = sortItems(items, currentSort.key, currentSort.direction);
-    renderTable(sortedItems, userRole);
-    renderTradePlace();
-    renderNotifications();
-    renderReportTargets();
-    renderModeratorReports();
-    renderReportSection();
-    renderLeaderboard();
-    renderMessages();
-    renderNotificationsSection();
-    renderAccount();
-    renderAdminPanel();
-    renderRoleManager();
-    updateLastUpdate();
-}
-
-function sortItems(items, key, direction) {
-    const sorted = [...items];
-
-    sorted.sort((a, b) => {
-        let valueA = a[key];
-        let valueB = b[key];
-
-        if (key === 'name' || key === 'type' || key === 'tier' || key === 'rarity') {
-            valueA = String(valueA || '').toLowerCase();
-            valueB = String(valueB || '').toLowerCase();
-        } else if (key === 'corruptedPages') {
-            valueA = Number(valueA || 0);
-            valueB = Number(valueB || 0);
-        }
-
-        if (valueA < valueB) return direction === 'asc' ? -1 : 1;
-        if (valueA > valueB) return direction === 'asc' ? 1 : -1;
-        return 0;
-    });
-
-    return sorted;
-}
-
-function toggleSort(key) {
-    if (currentSort.key === key) {
-        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-    } else {
-        currentSort.key = key;
-        currentSort.direction = 'asc';
-    }
-
-    const userRole = localStorage.getItem('userRole') || 'admin';
-    loadTableData(userRole);
-}
+// --- items table ---
 
 function getIconHtml(item) {
-    if (!item.icon) {
-        return '<span class="item-icon">✦</span>';
-    }
-
-    const isImageUrl = /^https?:\/\//i.test(item.icon) || /^data:image\//i.test(item.icon);
-    if (isImageUrl) {
+    if (!item.icon) return '<span class="item-icon">✦</span>';
+    if (/^https?:\/\//i.test(item.icon) || /^data:image\//i.test(item.icon)) {
         return `<img class="item-image" src="${item.icon}" alt="${sanitizeText(item.name)}">`;
     }
-
     return `<span class="item-icon">${sanitizeText(item.icon)}</span>`;
 }
 
 function renderTable(items, userRole) {
     const tbody = document.getElementById('tableBody');
+    if (!tbody) return;
     tbody.innerHTML = '';
 
     if (!items.length) {
@@ -1086,27 +518,22 @@ function renderTable(items, userRole) {
         return;
     }
 
-    items.forEach((item, index) => {
+    items.forEach((item) => {
         const row = document.createElement('tr');
         const rarityClass = `rarity-${(item.rarity || 'common').toLowerCase()}`;
-        const corruptedPages = item.corruptedPages !== undefined ? item.corruptedPages : '—';
-        const tier = item.tier ? item.tier : '—';
-
         let actionsCell = '';
         if (userRole === 'admin' || userRole === 'owner') {
-            actionsCell = `<td><div class="table-actions"><button onclick="startEditItem(${index})" class="btn-table btn-edit">Edit</button><button onclick="deleteItem(${index})" class="btn-table btn-delete">Delete</button></div></td>`;
+            actionsCell = `<td><div class="table-actions"><button onclick="startEditItem('${item.id}')" class="btn-table btn-edit">Edit</button><button onclick="deleteItem('${item.id}')" class="btn-table btn-delete">Delete</button></div></td>`;
         }
-
         row.dataset.searchText = `${item.name} ${item.icon || ''} ${item.type || ''} ${item.rarity || ''} ${item.tier || ''}`.toLowerCase();
         row.innerHTML = `
             <td>${getIconHtml(item)}</td>
-            <td>${item.name}</td>
-            <td>${corruptedPages}</td>
-            <td>${tier}</td>
-            <td class="${rarityClass}">${item.rarity}</td>
-            <td>${item.type}</td>
-            ${actionsCell}
-        `;
+            <td>${sanitizeText(item.name)}</td>
+            <td>${sanitizeText(String(item.corruptedPages ?? '—'))}</td>
+            <td>${sanitizeText(item.tier || '—')}</td>
+            <td class="${rarityClass}">${sanitizeText(item.rarity)}</td>
+            <td>${sanitizeText(item.type)}</td>
+            ${actionsCell}`;
         tbody.appendChild(row);
     });
 }
@@ -1121,12 +548,11 @@ function resetForm() {
     document.getElementById('itemRarity').value = 'Common';
     document.getElementById('itemImagePreview').innerHTML = '';
     uploadedItemImage = null;
-    document.getElementById('editingItemIndex').value = '';
-    editingIndex = null;
+    editingItemId = null;
     document.getElementById('saveItemBtn').textContent = 'Add item';
 }
 
-function saveItem() {
+async function saveItem() {
     const icon = document.getElementById('itemIcon').value.trim();
     const name = document.getElementById('itemName').value.trim();
     const corruptedPages = document.getElementById('itemCorruptedPages').value.trim();
@@ -1134,13 +560,9 @@ function saveItem() {
     const rarity = document.getElementById('itemRarity').value;
     const type = document.getElementById('itemType').value.trim();
 
-    if (!name || !type) {
-        showToast('Error', 'Fill name and type fields!', 'error');
-        return;
-    }
+    if (!name || !type) { showToast('Error', 'Fill name and type fields!', 'error'); return; }
 
-    const items = getItems();
-    const itemPayload = {
+    const payload = {
         icon: uploadedItemImage || icon,
         name,
         corruptedPages: corruptedPages ? parseInt(corruptedPages, 10) : undefined,
@@ -1149,462 +571,310 @@ function saveItem() {
         type
     };
 
-    if (editingIndex !== null) {
-        items[editingIndex] = { ...items[editingIndex], ...itemPayload };
+    if (editingItemId) {
+        await updateItem(editingItemId, payload);
     } else {
-        items.push(itemPayload);
+        await addItem(payload);
     }
 
-    saveItems(items);
     resetForm();
-    loadTableData('admin');
+    await reloadDashboard();
+    showToast('Success', 'Item saved!', 'success');
 }
 
-function startEditItem(index) {
-    const items = getItems();
-    const item = items[index];
+function startEditItem(id) {
+    const item = appData.items.find((i) => i.id === id);
     if (!item) return;
 
-    editingIndex = index;
-    document.getElementById('editingItemIndex').value = index;
-    document.getElementById('itemIcon').value = item.icon && !item.icon.startsWith('data:') ? item.icon : '';
+    editingItemId = id;
+    document.getElementById('itemIcon').value = item.icon && !String(item.icon).startsWith('data:') ? item.icon : '';
     document.getElementById('itemName').value = item.name || '';
-    document.getElementById('itemCorruptedPages').value = item.corruptedPages || '';
+    document.getElementById('itemCorruptedPages').value = item.corruptedPages ?? '';
     document.getElementById('itemTier').value = item.tier || '';
     document.getElementById('itemType').value = item.type || '';
     document.getElementById('itemRarity').value = item.rarity || 'Common';
-    document.getElementById('itemImageUpload').value = '';
-    uploadedItemImage = item.icon && item.icon.startsWith('data:') ? item.icon : null;
+    uploadedItemImage = item.icon && String(item.icon).startsWith('data:') ? item.icon : null;
     document.getElementById('itemImagePreview').innerHTML = uploadedItemImage ? `<img src="${uploadedItemImage}" alt="Preview">` : '';
     document.getElementById('saveItemBtn').textContent = 'Save changes';
 }
 
-function deleteItem(index) {
-    if (confirm('>>> REMOVE ITEM? <<<')) {
-        const items = getItems();
-        items.splice(index, 1);
-        saveItems(items);
-        if (editingIndex === index) {
-            resetForm();
-        } else if (editingIndex !== null && editingIndex > index) {
-            editingIndex -= 1;
-        }
-        loadTableData('admin');
-        showToast('Success', 'Item removed successfully', 'success');
+async function deleteItem(id) {
+    if (!confirm('>>> REMOVE ITEM? <<<')) return;
+    await deleteItemById(id);
+    if (editingItemId === id) resetForm();
+    await reloadDashboard();
+    showToast('Success', 'Item removed successfully', 'success');
+}
+
+function toggleSort(key) {
+    if (currentSort.key === key) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSort.key = key;
+        currentSort.direction = 'asc';
     }
+    loadTableData(getUserRole());
 }
 
 function filterTable() {
     const query = document.getElementById('searchInput').value.trim().toLowerCase();
-    const rows = document.querySelectorAll('#pricesTable tbody tr');
-
-    rows.forEach((row) => {
-        const text = row.dataset.searchText || '';
-        row.style.display = text.includes(query) ? '' : 'none';
+    document.querySelectorAll('#pricesTable tbody tr').forEach((row) => {
+        row.style.display = (row.dataset.searchText || '').includes(query) ? '' : 'none';
     });
 }
 
+// --- trade ---
+
 function renderTradePlace() {
-    const items = getItems();
+    const items = appData.items;
     const tradeItemSelect = document.getElementById('tradeItemSelect');
     const requestItemSelect = document.getElementById('requestItemSelect');
     const offerList = document.getElementById('tradeOffersList');
     const requestList = document.getElementById('tradeRequestsList');
-
-    if (!tradeItemSelect || !offerList) {
-        return;
-    }
+    if (!tradeItemSelect || !offerList) return;
 
     const currentUser = getCurrentUser();
-    tradeItemSelect.innerHTML = items.length
-        ? items.map((item) => `<option value="${item.name}">${item.name}</option>`).join('')
-        : '<option value="">No items yet</option>';
+    const options = items.length ? items.map((i) => `<option value="${i.name}">${i.name}</option>`).join('') : '<option value="">No items yet</option>';
+    tradeItemSelect.innerHTML = options;
+    if (requestItemSelect) requestItemSelect.innerHTML = options;
 
-    if (requestItemSelect) {
-        requestItemSelect.innerHTML = items.length
-            ? items.map((item) => `<option value="${item.name}">${item.name}</option>`).join('')
-            : '<option value="">No items yet</option>';
-    }
-
-    const offers = getTradeOffers().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    if (!offers.length) {
-        offerList.innerHTML = '<div class="trade-empty">No active offers yet.</div>';
-    } else {
-        offerList.innerHTML = offers.map((offer) => {
-            const itemName = sanitizeText(offer.itemName);
-            const message = sanitizeText(offer.message || 'No extra note.');
-            const seller = sanitizeText(offer.seller);
-            const isOwner = currentUser === offer.seller;
-            const item = items.find(i => i.name === offer.itemName);
-            const itemIcon = item?.icon || '';
-            const itemRarity = item?.rarity || 'Common';
-            const actionButtons = isOwner
-                ? '<span class="trade-tag">Your offer</span>'
-                : `
-                    <button class="btn btn-primary btn-small" type="button" onclick="acceptTradeOffer(${offer.id})">Accept</button>
-                    <button class="btn btn-secondary btn-small" type="button" onclick="rejectTradeOffer(${offer.id})">Reject</button>
-                    <button class="btn btn-secondary btn-small" type="button" onclick="startDm('${seller.replace(/'/g, "\\'")}')">DM</button>
-                `;
-
-            return `
-                <div class="trade-offer">
-                    <div class="trade-offer-header">
-                        <div class="trade-item-preview">
-                            ${itemIcon ? `<img src="${itemIcon}" class="item-icon" alt="${itemName}">` : ''}
-                            <div class="item-info">
-                                <strong>${itemName}</strong>
-                                <span class="item-rarity">${itemRarity}</span>
-                            </div>
-                        </div>
-                        <span>${sanitizeText(offer.price || 'Open to trade')}</span>
+    const offers = [...appData.tradeOffers].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    offerList.innerHTML = offers.length ? offers.map((offer) => {
+        const item = items.find((i) => i.name === offer.itemName);
+        const isOwner = currentUser === offer.seller;
+        const seller = sanitizeText(offer.seller);
+        const actions = isOwner
+            ? `<span class="trade-tag">Your offer</span><button class="btn btn-secondary btn-small" type="button" onclick="deleteTradeOfferHandler('${offer.id}')">Delete</button>`
+            : `<button class="btn btn-primary btn-small" type="button" onclick="acceptTradeOffer('${offer.id}')">Accept</button><button class="btn btn-secondary btn-small" type="button" onclick="rejectTradeOffer('${offer.id}')">Reject</button><button class="btn btn-secondary btn-small" type="button" onclick="startDm('${seller.replace(/'/g, "\\'")}')">DM</button>`;
+        return `
+            <div class="trade-offer">
+                <div class="trade-offer-header">
+                    <div class="trade-item-preview">
+                        ${item?.icon ? `<span class="item-icon">${item.icon}</span>` : ''}
+                        <div class="item-info"><strong>${sanitizeText(offer.itemName)}</strong><span class="item-rarity">${item?.rarity || ''}</span></div>
                     </div>
-                    <p>${message}</p>
-                    <div class="trade-offer-meta">
-                        <span>Seller: ${seller}</span>
-                        <span>${new Date(offer.createdAt).toLocaleString('pl-PL')}</span>
-                    </div>
-                    <div class="trade-actions">${actionButtons}</div>
+                    <span>${sanitizeText(offer.price || 'Open to trade')}</span>
                 </div>
-            `;
-        }).join('');
-    }
+                <p>${sanitizeText(offer.message || 'No extra note.')}</p>
+                <div class="trade-offer-meta"><span>Seller: ${seller}</span><span>${new Date(offer.createdAt).toLocaleString('pl-PL')}</span></div>
+                <div class="trade-actions">${actions}</div>
+            </div>`;
+    }).join('') : '<div class="trade-empty">No active offers yet.</div>';
 
     if (requestList) {
-        const requests = getTradeRequests().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        if (!requests.length) {
-            requestList.innerHTML = '<div class="trade-empty">No active requests yet.</div>';
-        } else {
-            requestList.innerHTML = requests.map((request) => {
-                const itemName = sanitizeText(request.itemName);
-                const message = sanitizeText(request.message || 'No extra note.');
-                const requester = sanitizeText(request.requester);
-                const isOwner = currentUser === request.requester;
-                const actionButtons = isOwner
-                    ? '<span class="trade-tag">Your request</span>'
-                    : `
-                        <button class="btn btn-primary btn-small" type="button" onclick="startDm('${requester.replace(/'/g, "\\'")}')">DM</button>
-                    `;
-
-                return `
-                    <div class="trade-offer">
-                        <div class="trade-offer-header">
-                            <strong>${itemName}</strong>
-                            <span>Qty: ${request.quantity}</span>
-                        </div>
-                        <p>${message}</p>
-                        <div class="trade-offer-meta">
-                            <span>CP: ${request.cp || 'Any'}</span>
-                            <span>Requester: ${requester}</span>
-                            <span>${new Date(request.createdAt).toLocaleString('pl-PL')}</span>
-                        </div>
-                        <div class="trade-actions">${actionButtons}</div>
-                    </div>
-                `;
-            }).join('');
-        }
+        const requests = [...appData.tradeRequests].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        requestList.innerHTML = requests.length ? requests.map((req) => {
+            const isOwner = currentUser === req.requester;
+            const requester = sanitizeText(req.requester);
+            const actions = isOwner
+                ? `<span class="trade-tag">Your request</span><button class="btn btn-secondary btn-small" type="button" onclick="deleteTradeRequestHandler('${req.id}')">Delete</button>`
+                : `<button class="btn btn-primary btn-small" type="button" onclick="startDm('${requester.replace(/'/g, "\\'")}')">DM</button>`;
+            return `
+                <div class="trade-offer">
+                    <div class="trade-offer-header"><strong>${sanitizeText(req.itemName)}</strong><span>Qty: ${req.quantity}</span></div>
+                    <p>${sanitizeText(req.message || 'No extra note.')}</p>
+                    <div class="trade-offer-meta"><span>CP: ${req.cp || 'Any'}</span><span>Requester: ${requester}</span><span>${new Date(req.createdAt).toLocaleString('pl-PL')}</span></div>
+                    <div class="trade-actions">${actions}</div>
+                </div>`;
+        }).join('') : '<div class="trade-empty">No active requests yet.</div>';
     }
 }
 
-function createTradeOffer() {
+async function createTradeOffer() {
     const currentUser = getCurrentUser();
     const itemName = document.getElementById('tradeItemSelect')?.value;
     const price = document.getElementById('tradePrice')?.value.trim();
     const message = document.getElementById('tradeMessage')?.value.trim();
 
-    console.log('createTradeOffer called', { currentUser, itemName, price, message });
+    if (!itemName) { showToast('Error', 'Select an item before listing it.', 'error'); return; }
 
-    if (!itemName) {
-        showToast('Error', 'Select an item before listing it.', 'error');
-        return;
-    }
-
-    if (!isSafeString(itemName) || !isSafeString(message) || !isSafeString(price)) {
-        showToast('Error', 'Unsafe characters detected.', 'error');
-        return;
-    }
-
-    if (!canPerformAction('tradeOffer', 5, 60_000)) {
-        showToast('Warning', 'Too many trade actions recently. Please wait a moment.', 'warning');
-        return;
-    }
-
-    recordAction('tradeOffer');
-    const offers = getTradeOffers();
-    offers.push({
-        id: Date.now(),
-        seller: currentUser,
-        itemName,
-        price,
-        message,
-        createdAt: new Date().toISOString()
-    });
-
-    saveTradeOffers(offers);
+    await addTradeOffer({ seller: currentUser, itemName, price, message });
+    await addNotification('all', `${currentUser} posted a new trade offer for ${itemName}.`);
     document.getElementById('tradePrice').value = '';
     document.getElementById('tradeMessage').value = '';
-    addNotification('all', `${currentUser} posted a new trade offer for ${itemName}.`);
-    renderTradePlace();
+    await reloadDashboard();
     showToast('Success', 'Trade offer listed successfully!', 'success');
 }
 
-function createTradeRequest() {
+async function createTradeRequest() {
     const currentUser = getCurrentUser();
     const itemName = document.getElementById('requestItemSelect')?.value;
     const cp = document.getElementById('requestCp')?.value.trim();
     const quantity = document.getElementById('requestQuantity')?.value.trim();
     const message = document.getElementById('requestMessage')?.value.trim();
 
-    if (!itemName) {
-        showToast('Error', 'Select an item before listing request.', 'error');
-        return;
-    }
+    if (!itemName) { showToast('Error', 'Select an item before listing request.', 'error'); return; }
 
-    if (!isSafeString(itemName) || !isSafeString(message) || !isSafeString(cp)) {
-        showToast('Error', 'Unsafe characters detected.', 'error');
-        return;
-    }
-
-    if (!canPerformAction('tradeRequest', 5, 60_000)) {
-        showToast('Warning', 'Too many trade actions recently. Please wait a moment.', 'warning');
-        return;
-    }
-
-    recordAction('tradeRequest');
-    const requests = getTradeRequests();
-    requests.push({
-        id: Date.now(),
+    await addTradeRequest({
         requester: currentUser,
         itemName,
         cp: cp ? parseInt(cp, 10) : null,
         quantity: quantity ? parseInt(quantity, 10) : 1,
-        message,
-        createdAt: new Date().toISOString()
+        message
     });
-
-    saveTradeRequests(requests);
+    await addNotification('all', `${currentUser} posted a new trade request for ${itemName}.`);
     document.getElementById('requestCp').value = '';
     document.getElementById('requestQuantity').value = '1';
     document.getElementById('requestMessage').value = '';
-    addNotification('all', `${currentUser} posted a new trade request for ${itemName}.`);
-    renderTradePlace();
+    await reloadDashboard();
     showToast('Success', 'Trade request listed successfully!', 'success');
 }
 
-function acceptTradeOffer(id) {
+async function acceptTradeOffer(id) {
     const currentUser = getCurrentUser();
-    if (!canPerformAction('tradeResponse', 4, 60_000)) {
-        showToast('Warning', 'Too many offer responses.', 'warning');
-        return;
-    }
-    recordAction('tradeResponse');
+    const offer = appData.tradeOffers.find((o) => o.id === id);
+    if (!offer) { showToast('Error', 'Offer not found.', 'error'); return; }
 
-    const offers = getTradeOffers();
-    const offer = offers.find((offer) => offer.id === id);
-    if (!offer) {
-        showToast('Error', 'Offer not found.', 'error');
-        return;
-    }
-
-    const updatedOffers = offers.filter((offerItem) => offerItem.id !== id);
-    saveTradeOffers(updatedOffers);
-    addNotification(offer.seller, `${currentUser} accepted your offer for ${offer.itemName}.`);
-    addNotification(currentUser, `You accepted ${offer.seller}'s offer for ${offer.itemName}.`);
-    renderTradePlace();
+    await deleteTradeOffer(id);
+    await addTransaction({ offerId: id, buyer: currentUser, seller: offer.seller, item: offer.itemName, price: offer.price });
+    await addNotification(offer.seller, `${currentUser} accepted your offer for ${offer.itemName}.`);
+    await addNotification(currentUser, `You accepted ${offer.seller}'s offer for ${offer.itemName}.`);
+    await addAchievement(currentUser, ACHIEVEMENTS.FIRST_TRADE);
+    await reloadDashboard();
     showToast('Success', 'Trade offer accepted!', 'success');
 
-    setTimeout(() => {
+    setTimeout(async () => {
         const rating = prompt(`Rate ${offer.seller} (1-5 stars):`, '5');
         if (rating && !isNaN(rating) && rating >= 1 && rating <= 5) {
-            ratePlayer(offer.seller, parseInt(rating, 10));
+            await addPlayerRating(offer.seller, parseInt(rating, 10), currentUser);
+            await reloadDashboard();
             showToast('Thanks', `You rated ${offer.seller} ${rating} stars!`, 'success');
-            renderLeaderboard();
         }
     }, 500);
 }
 
-function rejectTradeOffer(id) {
+async function rejectTradeOffer(id) {
     const currentUser = getCurrentUser();
-    if (!canPerformAction('tradeResponse', 6, 60_000)) {
-        showToast('Warning', 'Too many offer responses.', 'warning');
-        return;
-    }
-    recordAction('tradeResponse');
+    const offer = appData.tradeOffers.find((o) => o.id === id);
+    if (!offer) return;
 
-    const offers = getTradeOffers();
-    const offer = offers.find((offer) => offer.id === id);
-    if (!offer) {
-        showToast('Error', 'Offer not found.', 'error');
-        return;
-    }
-
-    const updatedOffers = offers.filter((offerItem) => offerItem.id !== id);
-    saveTradeOffers(updatedOffers);
-    addNotification(offer.seller, `${currentUser} rejected your offer for ${offer.itemName}.`);
-    renderTradePlace();
+    await deleteTradeOffer(id);
+    await addNotification(offer.seller, `${currentUser} rejected your offer for ${offer.itemName}.`);
+    await reloadDashboard();
     showToast('Info', 'Trade offer rejected.', 'info');
 }
 
+async function deleteTradeOfferHandler(id) {
+    await deleteTradeOffer(id);
+    await reloadDashboard();
+    showToast('Success', 'Offer deleted.', 'success');
+}
+
+async function deleteTradeRequestHandler(id) {
+    await deleteTradeRequest(id);
+    await reloadDashboard();
+    showToast('Success', 'Request deleted.', 'success');
+}
+
+// --- DM modal ---
+
 function startDm(recipient) {
     const modal = document.getElementById('dmModal');
-    const recipientInput = document.getElementById('dmModalRecipient');
-    const recipientDisplay = document.getElementById('dmModalRecipientDisplay');
-    const messageInput = document.getElementById('dmModalMessage');
-
-    if (modal && recipientInput && recipientDisplay && messageInput) {
-        recipientInput.value = recipient;
-        recipientDisplay.textContent = `To: ${recipient}`;
-        messageInput.value = '';
-        modal.style.display = 'flex';
-        messageInput.focus();
-    }
+    document.getElementById('dmModalRecipient').value = recipient;
+    document.getElementById('dmModalRecipientDisplay').textContent = `To: ${recipient}`;
+    document.getElementById('dmModalMessage').value = '';
+    if (modal) { modal.style.display = 'flex'; document.getElementById('dmModalMessage').focus(); }
 }
 
 function closeDmModal() {
     const modal = document.getElementById('dmModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
+    if (modal) modal.style.display = 'none';
 }
 
-function sendDmFromModal() {
+async function sendDmFromModal() {
     const recipient = document.getElementById('dmModalRecipient')?.value;
     const text = document.getElementById('dmModalMessage')?.value.trim();
+    if (!recipient || !text) { showToast('Error', 'Write a message first.', 'error'); return; }
 
-    if (!recipient || !text) {
-        showToast('Error', 'Write a message first.', 'error');
-        return;
-    }
-
-    if (!isSafeString(text) || !isSafeString(recipient)) {
-        showToast('Error', 'Unsafe content detected.', 'error');
-        return;
-    }
-
-    if (!canPerformAction('directMessage', 8, 60_000)) {
-        showToast('Warning', 'Too many messages recently.', 'warning');
-        return;
-    }
-
-    recordAction('directMessage');
-    const messages = getDirectMessages();
-    messages.push({
-        id: Date.now(),
-        from: getCurrentUser(),
-        to: recipient,
-        text: sanitizeText(text),
-        createdAt: new Date().toISOString()
-    });
-
-    saveDirectMessages(messages);
-    addNotification(recipient, `New DM from ${getCurrentUser()}.`);
-    closeDmModal();
-    renderMessages();
-    showToast('Success', 'Message sent!', 'success');
-}
-
-function sendDirectMessage() {
     const currentUser = getCurrentUser();
-    const recipient = document.getElementById('dmRecipient')?.value;
-    const text = document.getElementById('dmMessage')?.value.trim();
-
-    if (!recipient || !text) {
-        showToast('Error', 'Choose a player and write a message.', 'error');
-        return;
-    }
-
-    if (!isSafeString(text) || !isSafeString(recipient)) {
-        showToast('Error', 'Unsafe content detected.', 'error');
-        return;
-    }
-
-    if (!canPerformAction('directMessage', 8, 60_000)) {
-        showToast('Warning', 'Too many messages recently.', 'warning');
-        return;
-    }
-
-    recordAction('directMessage');
-    const messages = getDirectMessages();
-    messages.push({
-        id: Date.now(),
-        from: currentUser,
-        to: recipient,
-        text: sanitizeText(text),
-        createdAt: new Date().toISOString()
-    });
-
-    saveDirectMessages(messages);
-    addNotification(recipient, `New DM from ${currentUser}.`);
-    document.getElementById('dmMessage').value = '';
-    renderTradePlace();
+    await addMessage({ from: currentUser, to: recipient, text: sanitizeText(text) });
+    await addNotification(recipient, `New DM from ${currentUser}.`);
+    closeDmModal();
+    await reloadDashboard();
     showToast('Success', 'Message sent!', 'success');
 }
+
+// --- misc UI ---
 
 function updateLastUpdate() {
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('pl-PL') + ' ' + now.toLocaleTimeString('pl-PL');
-    document.getElementById('lastUpdate').textContent = dateStr;
+    const el = document.getElementById('lastUpdate');
+    if (el) {
+        const now = new Date();
+        el.textContent = now.toLocaleDateString('pl-PL') + ' ' + now.toLocaleTimeString('pl-PL');
+    }
 }
 
 function setTheme(theme) {
-    const resolvedTheme = theme === 'light' ? 'light' : 'dark';
-    document.body.classList.toggle('theme-light', resolvedTheme === 'light');
-    localStorage.setItem('theme', resolvedTheme);
+    const resolved = theme === 'light' ? 'light' : 'dark';
+    document.body.classList.toggle('theme-light', resolved === 'light');
+    localStorage.setItem('theme', resolved);
     const button = document.getElementById('themeToggle');
-    if (button) {
-        button.textContent = resolvedTheme === 'light' ? '🌙 Dark' : '☀️ Light';
-    }
+    if (button) button.textContent = resolved === 'light' ? '🌙 Dark' : '☀️ Light';
 }
 
 function handleItemImageUpload(event) {
     const file = event.target.files?.[0];
     const preview = document.getElementById('itemImagePreview');
-
-    if (!file || !preview) {
-        uploadedItemImage = null;
-        if (preview) preview.innerHTML = '';
-        return;
-    }
-
+    if (!file || !preview) { uploadedItemImage = null; if (preview) preview.innerHTML = ''; return; }
     const reader = new FileReader();
-    reader.onload = () => {
-        uploadedItemImage = reader.result;
-        preview.innerHTML = `<img src="${uploadedItemImage}" alt="Preview">`;
-    };
+    reader.onload = () => { uploadedItemImage = reader.result; preview.innerHTML = `<img src="${uploadedItemImage}" alt="Preview">`; };
     reader.readAsDataURL(file);
 }
 
 function switchSection(sectionName) {
-    document.querySelectorAll('.nav-btn').forEach((btn) => {
-        btn.classList.toggle('active', btn.dataset.section === sectionName);
-    });
+    document.querySelectorAll('.nav-btn').forEach((btn) => btn.classList.toggle('active', btn.dataset.section === sectionName));
+    document.querySelectorAll('.section-content').forEach((s) => { s.style.display = 'none'; });
+    const target = document.getElementById(`${sectionName}-section`);
+    if (target) target.style.display = 'block';
+}
 
-    document.querySelectorAll('.section-content').forEach((section) => {
-        section.style.display = 'none';
+function filterMessages() {
+    const query = document.getElementById('messagesSearchInput')?.value.trim().toLowerCase();
+    document.querySelectorAll('.conversation-item').forEach((item) => {
+        item.style.display = item.textContent.toLowerCase().includes(query) ? '' : 'none';
     });
+}
 
-    const targetSection = document.getElementById(`${sectionName}-section`);
-    if (targetSection) {
-        targetSection.style.display = 'block';
-    }
+function filterNotifications() {
+    const query = document.getElementById('notificationsSearchInput')?.value.trim().toLowerCase();
+    document.querySelectorAll('.notification-card').forEach((card) => {
+        card.style.display = card.textContent.toLowerCase().includes(query) ? '' : 'none';
+    });
+}
+
+function filterOffers() {
+    const query = document.getElementById('offersSearchInput')?.value.trim().toLowerCase();
+    document.querySelectorAll('#tradeOffersList .trade-offer').forEach((item) => {
+        item.style.display = item.textContent.toLowerCase().includes(query) ? '' : 'none';
+    });
+}
+
+function filterRequests() {
+    const query = document.getElementById('requestsSearchInput')?.value.trim().toLowerCase();
+    document.querySelectorAll('#tradeRequestsList .trade-offer').forEach((item) => {
+        item.style.display = item.textContent.toLowerCase().includes(query) ? '' : 'none';
+    });
+}
+
+async function handleBanUserIp() {
+    const username = document.getElementById('adminUserSelect')?.value;
+    if (!username) { showToast('Error', 'Select a player first.', 'error'); return; }
+
+    const user = appData.users.find((u) => u.username === username);
+    if (!user?.ip) { showToast('Error', 'No IP on record for this user.', 'error'); return; }
+
+    await addBannedIp(user.ip);
+    await banUser(username);
+    await reloadDashboard();
+    showToast('Success', `${username} (${user.ip}) has been banned.`, 'success');
 }
 
 function initDashboardControls() {
-    document.querySelectorAll('.sort-btn').forEach((button) => {
-        button.addEventListener('click', () => toggleSort(button.dataset.sort));
+    document.querySelectorAll('.sort-btn').forEach((btn) => btn.addEventListener('click', () => toggleSort(btn.dataset.sort)));
+    document.querySelectorAll('.nav-btn').forEach((btn) => btn.addEventListener('click', () => switchSection(btn.dataset.section)));
+    document.getElementById('themeToggle')?.addEventListener('click', () => {
+        setTheme(document.body.classList.contains('theme-light') ? 'dark' : 'light');
     });
-
-    document.querySelectorAll('.nav-btn').forEach((button) => {
-        button.addEventListener('click', () => switchSection(button.dataset.section));
-    });
-
-    const themeButton = document.getElementById('themeToggle');
-    if (themeButton) {
-        themeButton.addEventListener('click', () => {
-            const nextTheme = document.body.classList.contains('theme-light') ? 'dark' : 'light';
-            setTheme(nextTheme);
-        });
-    }
-
     document.getElementById('saveItemBtn')?.addEventListener('click', saveItem);
     document.getElementById('cancelEditBtn')?.addEventListener('click', resetForm);
     document.getElementById('itemImageUpload')?.addEventListener('change', handleItemImageUpload);
@@ -1613,6 +883,8 @@ function initDashboardControls() {
     document.getElementById('assignRoleBtn')?.addEventListener('click', handleAssignRole);
     document.getElementById('dmModalSendBtn')?.addEventListener('click', sendDmFromModal);
     document.getElementById('submitReportBtn')?.addEventListener('click', submitReport);
+    document.getElementById('adminWarnBtn')?.addEventListener('click', handleAdminWarn);
+    document.getElementById('adminBanIpBtn')?.addEventListener('click', handleBanUserIp);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1620,37 +892,28 @@ document.addEventListener('DOMContentLoaded', () => {
     setTheme(localStorage.getItem('theme') || 'dark');
 });
 
-// Window exposure for onclick handlers
-window.handleAssignRole = handleAssignRole;
-window.createTradeOffer = createTradeOffer;
-window.createTradeRequest = createTradeRequest;
-window.deleteItem = deleteItem;
-window.startEditItem = startEditItem;
-window.saveItem = saveItem;
-window.resetForm = resetForm;
-window.handleItemImageUpload = handleItemImageUpload;
-window.sendDmFromModal = sendDmFromModal;
+// Window exports for onclick handlers
+window.loadTableData = loadTableData;
+window.clearNotification = clearNotificationHandler;
+window.handleReportOutcome = handleReportOutcome;
 window.submitReport = submitReport;
-window.startDm = startDm;
-window.closeDmModal = closeDmModal;
+window.renderMessages = renderMessages;
 window.openConversation = openConversation;
 window.quickReply = quickReply;
+window.handleUnbanIp = handleUnbanIp;
+window.handleAssignRole = handleAssignRole;
+window.startEditItem = startEditItem;
+window.deleteItem = deleteItem;
+window.createTradeOffer = createTradeOffer;
+window.createTradeRequest = createTradeRequest;
+window.acceptTradeOffer = acceptTradeOffer;
+window.rejectTradeOffer = rejectTradeOffer;
+window.deleteTradeOfferHandler = deleteTradeOfferHandler;
+window.deleteTradeRequestHandler = deleteTradeRequestHandler;
+window.startDm = startDm;
+window.closeDmModal = closeDmModal;
+window.sendDmFromModal = sendDmFromModal;
 window.filterMessages = filterMessages;
 window.filterNotifications = filterNotifications;
 window.filterOffers = filterOffers;
 window.filterRequests = filterRequests;
-window.clearNotification = clearNotification;
-window.addTransaction = addTransaction;
-window.rateTransaction = rateTransaction;
-window.toggleWatchlist = toggleWatchlist;
-window.isWatched = isWatched;
-window.unlockAchievement = unlockAchievement;
-window.hasAchievement = hasAchievement;
-window.handleBanUser = handleBanUser;
-window.handleWarnUser = handleWarnUser;
-window.handleUnbanIp = handleUnbanIp;
-window.handleDeleteReport = handleDeleteReport;
-window.handleApproveReport = handleApproveReport;
-window.handleRejectReport = handleRejectReport;
-window.handleBanReportUser = handleBanReportUser;
-window.handleDeleteReportUser = handleDeleteReportUser;
