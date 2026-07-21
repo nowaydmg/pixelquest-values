@@ -1071,10 +1071,10 @@ function getIconHtml(item) {
 
     const isImageUrl = /^https?:\/\//i.test(item.icon) || /^data:image\//i.test(item.icon);
     if (isImageUrl) {
-        return `<img class="item-image" src="${item.icon}" alt="${item.name}" onerror="this.style.display='none'; this.parentElement.innerHTML='✦';">`;
+        return `<img class="item-image" src="${item.icon}" alt="${sanitizeText(item.name)}">`;
     }
 
-    return `<span class="item-icon">${item.icon}</span>`;
+    return `<span class="item-icon">${sanitizeText(item.icon)}</span>`;
 }
 
 function renderTable(items, userRole) {
