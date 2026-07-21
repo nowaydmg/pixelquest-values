@@ -37,7 +37,9 @@ function renderTable(items, userRole) {
             actionsCell = `<td><button onclick="deleteItem(${index})" class="btn-delete">Usuń</button></td>`;
         }
 
-        const iconCell = item.icon ? `<span class="item-icon">${item.icon}</span>` : '<span class="item-icon">—</span>';
+        const iconCell = item.icon
+            ? `<img class="item-image" src="${item.icon}" alt="${item.name}" onerror="this.style.display='none'; this.parentElement.innerHTML='—';">`
+            : '<span class="item-icon">—</span>';
         const corruptedPages = item.corruptedPages !== undefined ? item.corruptedPages : '—';
         const tier = item.tier ? item.tier : '—';
 
