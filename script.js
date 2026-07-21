@@ -219,6 +219,32 @@ function renderNotifications() {
         : '<div class="trade-empty">No notifications.</div>';
 }
 
+function renderNotificationsSection() {
+    const notificationsList = document.getElementById('notificationsList');
+    if (!notificationsList) return;
+
+    const currentUser = getCurrentUser();
+    const notifications = getNotificationsForUser(currentUser);
+
+    if (!notifications.length) {
+        notificationsList.innerHTML = '<div class="trade-empty">No notifications yet.</div>';
+        return;
+    }
+
+    notificationsList.innerHTML = notifications
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .map((note) => `
+            <div class="notification-card ${note.seen ? 'seen' : ''}">
+                <div class="notification-content">${note.text}</div>
+                <div class="notification-time">${new Date(note.createdAt).toLocaleString('pl-PL')}</div>
+                <div class="notification-actions">
+                    <button class="btn btn-secondary btn-small" type="button" onclick="clearNotification(${note.id})">Dismiss</button>
+                </div>
+            </div>
+        `)
+        .join('');
+}
+
 function renderReportTargets() {
     const currentUser = getCurrentUser();
     const reportTargetSelect = document.getElementById('reportTargetSelect');
@@ -760,6 +786,7 @@ function loadTableData(userRole) {
     renderReportSection();
     renderLeaderboard();
     renderMessages();
+    renderNotificationsSection();
     renderAccount();
     renderAdminPanel();
     renderRoleManager();

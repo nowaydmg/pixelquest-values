@@ -663,6 +663,38 @@ footer {
     color: var(--text);
 }
 
+.form-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.form-grid select,
+.form-grid input,
+.form-grid textarea {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text);
+    font: inherit;
+    transition: all 0.3s ease;
+}
+
+.form-grid select:focus,
+.form-grid input:focus,
+.form-grid textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+}
+
+.form-grid textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
 .trade-offers-list {
     display: grid;
     gap: 10px;
@@ -1002,6 +1034,44 @@ footer {
 .messages-list {
     display: grid;
     gap: 10px;
+}
+
+.notifications-list {
+    display: grid;
+    gap: 10px;
+}
+
+.notification-card {
+    padding: 16px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
+}
+
+.notification-card.seen {
+    opacity: 0.6;
+}
+
+.notification-card:not(.seen) {
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+}
+
+.notification-content {
+    color: var(--text);
+    margin-bottom: 8px;
+}
+
+.notification-time {
+    color: var(--muted);
+    font-size: 0.75rem;
+    margin-bottom: 8px;
+}
+
+.notification-actions {
+    display: flex;
+    justify-content: flex-end;
 }
 
 .conversation-item {

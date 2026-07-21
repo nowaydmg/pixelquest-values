@@ -43,6 +43,7 @@
             <button id="reportNavBtn" class="nav-btn" data-section="report" style="display: none;">Report</button>
             <button class="nav-btn" data-section="leaderboard">Leaderboard</button>
             <button class="nav-btn" data-section="messages">Messages</button>
+            <button class="nav-btn" data-section="notifications">Notifications</button>
             <button class="nav-btn" data-section="account">Account</button>
             <button id="adminControlNavBtn" class="nav-btn" data-section="admin-control" style="display: none;">Admin Control</button>
             <button id="adminModerationNavBtn" class="nav-btn" data-section="admin-moderation" style="display: none;">Admin Moderation</button>
@@ -119,11 +120,6 @@
                     </div>
 
                     <div class="trade-card">
-                        <h3>Notifications</h3>
-                        <div id="notificationList" class="trade-offers-list"></div>
-                    </div>
-
-                    <div class="trade-card">
                         <h3>Report player</h3>
                         <div class="form-grid trade-form">
                             <select id="reportTargetSelect"></select>
@@ -163,6 +159,16 @@
                         <p>Your direct messages with other players.</p>
                     </div>
                     <div id="messagesList" class="messages-list"></div>
+                </section>
+            </div>
+
+            <div id="notifications-section" class="section-content" style="display: none;">
+                <section class="trade-panel">
+                    <div class="panel-heading">
+                        <h2>Notifications</h2>
+                        <p>Your recent activity notifications.</p>
+                    </div>
+                    <div id="notificationsList" class="notifications-list"></div>
                 </section>
             </div>
 
