@@ -518,16 +518,24 @@ function renderAccount() {
     const offers = getTradeOffers().filter((o) => o.seller === currentUser);
     const requests = getTradeRequests().filter((r) => r.requester === currentUser);
 
-    const userData = JSON.parse(localStorage.getItem('registeredUsers') || '{}')[currentUser] || {};
-    const userId = userData.userId || Math.floor(Math.random() * 1000000);
+    const stored = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
+    const userData = stored[currentUser] || {};
+
+    // Generate real UserID based on username hash
+    const userId = userData.userId || Math.abs(currentUser.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0));
+    
+    // Use real registration date or current date
     const registered = userData.registered || new Date().toISOString();
-    const timeSpent = userData.timeSpent || Math.floor(Math.random() * 10000);
-    const posts = userData.posts || Math.floor(Math.random() * 100);
-    const likes = userData.likes || Math.floor(Math.random() * 1000);
-    const views = userData.views || Math.floor(Math.random() * 500);
-    const awards = userData.awards || Math.floor(Math.random() * 10);
-    const resources = userData.resources || Math.floor(Math.random() * 5);
-    const media = userData.media || Math.floor(Math.random() * 10);
+    
+    // Calculate real time spent based on localStorage timestamps
+    const loginTime = localStorage.getItem('loginTime') || Date.now();
+    const timeSpent = Math.floor((Date.now() - parseInt(loginTime)) / 1000);
+    
+    // Count real activity from localStorage
+    const posts = userData.posts || 0;
+    const likes = userData.likes || 0;
+    const views = userData.views || 0;
+    const awards = userData.awards || 0;
 
     accountContent.innerHTML = `
         <div class="account-grid">
@@ -547,7 +555,7 @@ function renderAccount() {
                 <div class="profile-stats-grid">
                     <div class="stat-item">
                         <span class="stat-label">UserID</span>
-                        <span class="stat-value">${userId}</span>
+                        <span class="stat-value">#${userId}</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">Registered</span>
@@ -572,12 +580,12 @@ function renderAccount() {
                         <span class="stat-value">${Math.floor(timeSpent / 3600)}h ${Math.floor((timeSpent % 3600) / 60)}m</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">Posts</span>
-                        <span class="stat-value">${posts}</span>
+                        <span class="stat-label">Trade Offers</span>
+                        <span class="stat-value">${offers.length}</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">Likes</span>
-                        <span class="stat-value">${likes}</span>
+                        <span class="stat-label">Trade Requests</span>
+                        <span class="stat-value">${requests.length}</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">Total Views</span>
@@ -704,6 +712,8 @@ function handleAssignRole() {
     const role = document.getElementById('roleSelect')?.value;
     const userRole = localStorage.getItem('userRole');
 
+    console.log('handleAssignRole called', { username, role, userRole });
+
     if (!username || !role) {
         showToast('Error', 'Select a player and role first.', 'error');
         return;
@@ -722,6 +732,10 @@ function handleAssignRole() {
         showToast('Success', `Updated ${username} to ${role}.`, 'success');
     }
 }
+
+window.handleAssignRole = handleAssignRole;
+window.createTradeOffer = createTradeOffer;
+window.createTradeRequest = createTradeRequest;
 
 function getTradeOffers() {
     try {
@@ -1098,6 +1112,8 @@ function createTradeOffer() {
     const price = document.getElementById('tradePrice')?.value.trim();
     const message = document.getElementById('tradeMessage')?.value.trim();
 
+    console.log('createTradeOffer called', { currentUser, itemName, price, message });
+
     if (!itemName) {
         showToast('Error', 'Select an item before listing it.', 'error');
         return;
@@ -1395,6 +1411,7 @@ function initDashboardControls() {
     document.getElementById('itemImageUpload')?.addEventListener('change', handleItemImageUpload);
     document.getElementById('createTradeOfferBtn')?.addEventListener('click', createTradeOffer);
     document.getElementById('createTradeRequestBtn')?.addEventListener('click', createTradeRequest);
+    document.getElementById('assignRoleBtn')?.addEventListener('click', handleAssignRole);
     document.getElementById('dmModalSendBtn')?.addEventListener('click', sendDmFromModal);
     document.getElementById('submitReportBtn')?.addEventListener('click', submitReport);
 }
