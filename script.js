@@ -1093,7 +1093,7 @@ function renderTable(items, userRole) {
         const tier = item.tier ? item.tier : '—';
 
         let actionsCell = '';
-        if (userRole === 'admin') {
+        if (userRole === 'admin' || userRole === 'owner') {
             actionsCell = `<td><div class="table-actions"><button onclick="startEditItem(${index})" class="btn-table btn-edit">Edit</button><button onclick="deleteItem(${index})" class="btn-table btn-delete">Delete</button></div></td>`;
         }
 
