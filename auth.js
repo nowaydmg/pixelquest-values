@@ -203,9 +203,16 @@ function renderRoleManager() {
 function handleAssignRole() {
     const username = document.getElementById('roleUserSelect')?.value;
     const role = document.getElementById('roleSelect')?.value;
+    const currentUser = localStorage.getItem('currentUser');
+    const userRole = localStorage.getItem('userRole');
 
     if (!username || !role) {
         showRoleMessage('Select a player and role first.', 'error');
+        return;
+    }
+
+    if (role === 'owner' && userRole !== 'owner') {
+        showRoleMessage('Only owner can assign owner role.', 'error');
         return;
     }
 
@@ -600,10 +607,12 @@ function initDashboard() {
         document.getElementById('moderatorWarnBtn')?.addEventListener('click', handleModeratorWarn);
     }
 
-    if (userRole === 'owner' && roleManagerPanel) {
-        roleManagerPanel.style.display = 'block';
-        renderRoleManager();
-        document.getElementById('assignRoleBtn')?.addEventListener('click', handleAssignRole);
+    if (userRole === 'admin' || userRole === 'owner') {
+        if (roleManagerPanel) {
+            roleManagerPanel.style.display = 'block';
+            renderRoleManager();
+            document.getElementById('assignRoleBtn')?.addEventListener('click', handleAssignRole);
+        }
     }
 
     if (adminActionsPanel) {
