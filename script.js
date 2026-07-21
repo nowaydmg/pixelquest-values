@@ -733,12 +733,6 @@ function handleAssignRole() {
     }
 }
 
-window.handleAssignRole = handleAssignRole;
-window.createTradeOffer = createTradeOffer;
-window.createTradeRequest = createTradeRequest;
-window.deleteItem = deleteItem;
-window.startEditItem = startEditItem;
-
 function getTradeOffers() {
     try {
         const stored = JSON.parse(localStorage.getItem('tradeOffers') || '[]');
@@ -988,12 +982,10 @@ function renderTradePlace() {
     const items = getItems();
     const tradeItemSelect = document.getElementById('tradeItemSelect');
     const requestItemSelect = document.getElementById('requestItemSelect');
-    const dmRecipient = document.getElementById('dmRecipient');
     const offerList = document.getElementById('tradeOffersList');
     const requestList = document.getElementById('tradeRequestsList');
-    const dmList = document.getElementById('dmMessagesList');
 
-    if (!tradeItemSelect || !dmRecipient || !offerList || !dmList) {
+    if (!tradeItemSelect || !offerList) {
         return;
     }
 
@@ -1007,11 +999,6 @@ function renderTradePlace() {
             ? items.map((item) => `<option value="${item.name}">${item.name}</option>`).join('')
             : '<option value="">No items yet</option>';
     }
-
-    const users = getRegisteredUsers().filter((user) => user !== currentUser);
-    dmRecipient.innerHTML = users.length
-        ? users.map((user) => `<option value="${user}">${user}</option>`).join('')
-        : '<option value="">No available users</option>';
 
     const offers = getTradeOffers().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     if (!offers.length) {
@@ -1081,31 +1068,6 @@ function renderTradePlace() {
             }).join('');
         }
     }
-
-    const messages = getDirectMessages();
-    const recipient = dmRecipient.value;
-    const visibleMessages = messages.filter((message) => {
-        const isRelevant = (message.from === currentUser && message.to === recipient) || (message.from === recipient && message.to === currentUser);
-        return recipient ? isRelevant : false;
-    });
-
-    if (!recipient) {
-        dmList.innerHTML = '<div class="trade-empty">Choose a player to see messages.</div>';
-        return;
-    }
-
-    if (!visibleMessages.length) {
-        dmList.innerHTML = '<div class="trade-empty">No messages yet. Start the conversation.</div>';
-        return;
-    }
-
-    dmList.innerHTML = visibleMessages.map((message) => `
-        <div class="dm-message ${message.from === currentUser ? 'mine' : ''}">
-            <div class="dm-message-meta">${message.from === currentUser ? 'You' : sanitizeText(message.from)}</div>
-            <div>${sanitizeText(message.text)}</div>
-            <div class="dm-message-time">${new Date(message.createdAt).toLocaleString('pl-PL')}</div>
-        </div>
-    `).join('');
 }
 
 function createTradeOffer() {
@@ -1422,3 +1384,28 @@ document.addEventListener('DOMContentLoaded', () => {
     initDashboardControls();
     setTheme(localStorage.getItem('theme') || 'dark');
 });
+
+// Window exposure for onclick handlers
+window.handleAssignRole = handleAssignRole;
+window.createTradeOffer = createTradeOffer;
+window.createTradeRequest = createTradeRequest;
+window.deleteItem = deleteItem;
+window.startEditItem = startEditItem;
+window.saveItem = saveItem;
+window.resetForm = resetForm;
+window.handleItemImageUpload = handleItemImageUpload;
+window.sendDmFromModal = sendDmFromModal;
+window.submitReport = submitReport;
+window.startDm = startDm;
+window.closeDmModal = closeDmModal;
+window.openConversation = openConversation;
+window.quickReply = quickReply;
+window.clearNotification = clearNotification;
+window.handleBanUser = handleBanUser;
+window.handleWarnUser = handleWarnUser;
+window.handleUnbanIp = handleUnbanIp;
+window.handleDeleteReport = handleDeleteReport;
+window.handleApproveReport = handleApproveReport;
+window.handleRejectReport = handleRejectReport;
+window.handleBanReportUser = handleBanReportUser;
+window.handleDeleteReportUser = handleDeleteReportUser;
