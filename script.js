@@ -500,6 +500,19 @@ function saveTradeOffers(offers) {
     localStorage.setItem('tradeOffers', JSON.stringify(offers));
 }
 
+function getTradeRequests() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('tradeRequests') || '[]');
+        return Array.isArray(stored) ? stored : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function saveTradeRequests(requests) {
+    localStorage.setItem('tradeRequests', JSON.stringify(requests));
+}
+
 function getDirectMessages() {
     try {
         const stored = JSON.parse(localStorage.getItem('directMessages') || '[]');
@@ -719,8 +732,10 @@ function filterTable() {
 function renderTradePlace() {
     const items = getItems();
     const tradeItemSelect = document.getElementById('tradeItemSelect');
+    const requestItemSelect = document.getElementById('requestItemSelect');
     const dmRecipient = document.getElementById('dmRecipient');
     const offerList = document.getElementById('tradeOffersList');
+    const requestList = document.getElementById('tradeRequestsList');
     const dmList = document.getElementById('dmMessagesList');
 
     if (!tradeItemSelect || !dmRecipient || !offerList || !dmList) {
@@ -731,6 +746,12 @@ function renderTradePlace() {
     tradeItemSelect.innerHTML = items.length
         ? items.map((item) => `<option value="${item.name}">${item.name}</option>`).join('')
         : '<option value="">No items yet</option>';
+
+    if (requestItemSelect) {
+        requestItemSelect.innerHTML = items.length
+            ? items.map((item) => `<option value="${item.name}">${item.name}</option>`).join('')
+            : '<option value="">No items yet</option>';
+    }
 
     const users = getRegisteredUsers().filter((user) => user !== currentUser);
     dmRecipient.innerHTML = users.length
@@ -769,6 +790,41 @@ function renderTradePlace() {
                 </div>
             `;
         }).join('');
+    }
+
+    if (requestList) {
+        const requests = getTradeRequests().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        if (!requests.length) {
+            requestList.innerHTML = '<div class="trade-empty">No active requests yet.</div>';
+        } else {
+            requestList.innerHTML = requests.map((request) => {
+                const itemName = sanitizeText(request.itemName);
+                const message = sanitizeText(request.message || 'No extra note.');
+                const requester = sanitizeText(request.requester);
+                const isOwner = currentUser === request.requester;
+                const actionButtons = isOwner
+                    ? '<span class="trade-tag">Your request</span>'
+                    : `
+                        <button class="btn btn-primary btn-small" type="button" onclick="startDm('${requester.replace(/'/g, "\\'")}')">DM</button>
+                    `;
+
+                return `
+                    <div class="trade-offer">
+                        <div class="trade-offer-header">
+                            <strong>${itemName}</strong>
+                            <span>Qty: ${request.quantity}</span>
+                        </div>
+                        <p>${message}</p>
+                        <div class="trade-offer-meta">
+                            <span>CP: ${request.cp || 'Any'}</span>
+                            <span>Requester: ${requester}</span>
+                            <span>${new Date(request.createdAt).toLocaleString('pl-PL')}</span>
+                        </div>
+                        <div class="trade-actions">${actionButtons}</div>
+                    </div>
+                `;
+            }).join('');
+        }
     }
 
     const messages = getDirectMessages();
@@ -835,6 +891,49 @@ function createTradeOffer() {
     addNotification('all', `${currentUser} posted a new trade offer for ${itemName}.`);
     renderTradePlace();
     showToast('Success', 'Trade offer listed successfully!', 'success');
+}
+
+function createTradeRequest() {
+    const currentUser = getCurrentUser();
+    const itemName = document.getElementById('requestItemSelect')?.value;
+    const cp = document.getElementById('requestCp')?.value.trim();
+    const quantity = document.getElementById('requestQuantity')?.value.trim();
+    const message = document.getElementById('requestMessage')?.value.trim();
+
+    if (!itemName) {
+        showToast('Error', 'Select an item before listing request.', 'error');
+        return;
+    }
+
+    if (!isSafeString(itemName) || !isSafeString(message) || !isSafeString(cp)) {
+        showToast('Error', 'Unsafe characters detected.', 'error');
+        return;
+    }
+
+    if (!canPerformAction('tradeRequest', 5, 60_000)) {
+        showToast('Warning', 'Too many trade actions recently. Please wait a moment.', 'warning');
+        return;
+    }
+
+    recordAction('tradeRequest');
+    const requests = getTradeRequests();
+    requests.push({
+        id: Date.now(),
+        requester: currentUser,
+        itemName,
+        cp: cp ? parseInt(cp, 10) : null,
+        quantity: quantity ? parseInt(quantity, 10) : 1,
+        message,
+        createdAt: new Date().toISOString()
+    });
+
+    saveTradeRequests(requests);
+    document.getElementById('requestCp').value = '';
+    document.getElementById('requestQuantity').value = '1';
+    document.getElementById('requestMessage').value = '';
+    addNotification('all', `${currentUser} posted a new trade request for ${itemName}.`);
+    renderTradePlace();
+    showToast('Success', 'Trade request listed successfully!', 'success');
 }
 
 function acceptTradeOffer(id) {
@@ -1010,6 +1109,7 @@ function initDashboardControls() {
     document.getElementById('cancelEditBtn')?.addEventListener('click', resetForm);
     document.getElementById('itemImageUpload')?.addEventListener('change', handleItemImageUpload);
     document.getElementById('createTradeOfferBtn')?.addEventListener('click', createTradeOffer);
+    document.getElementById('createTradeRequestBtn')?.addEventListener('click', createTradeRequest);
     document.getElementById('sendDmBtn')?.addEventListener('click', sendDirectMessage);
     document.getElementById('dmRecipient')?.addEventListener('change', renderTradePlace);
     document.getElementById('submitReportBtn')?.addEventListener('click', submitReport);

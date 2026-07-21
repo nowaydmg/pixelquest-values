@@ -74,6 +74,19 @@
                         </div>
 
                         <div class="trade-card">
+                            <h3>List a request</h3>
+                            <div class="form-grid trade-form">
+                                <select id="requestItemSelect"></select>
+                                <input id="requestCp" type="number" placeholder="Corrupted Pages (optional)">
+                                <input id="requestQuantity" type="number" placeholder="Quantity" min="1" value="1">
+                                <textarea id="requestMessage" rows="3" placeholder="Describe what you're looking for..."></textarea>
+                                <div class="form-actions">
+                                    <button id="createTradeRequestBtn" class="btn btn-primary" type="button">List request</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="trade-card">
                             <h3>Direct message</h3>
                             <div class="form-grid trade-form">
                                 <select id="dmRecipient"></select>
@@ -89,6 +102,11 @@
                     <div class="trade-card">
                         <h3>Open offers</h3>
                         <div id="tradeOffersList" class="trade-offers-list"></div>
+                    </div>
+
+                    <div class="trade-card">
+                        <h3>Open requests</h3>
+                        <div id="tradeRequestsList" class="trade-offers-list"></div>
                     </div>
 
                     <div class="trade-card">
