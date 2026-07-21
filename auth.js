@@ -1,7 +1,7 @@
 const INITIAL_USERS = {
-    admin: { password: 'admin123', role: 'admin' },
-    user: { password: 'user123', role: 'user' },
-    holybalenciagas: { password: 'X7#kP9$mQ2@vL8&nR4%tW6^eY0!uZ3*xB5-cV9', role: 'admin' }
+    admin: { password: 'admin123', role: 'admin', ip: '192.168.1.2', warnings: 0, banned: false },
+    user: { password: 'user123', role: 'user', ip: '192.168.1.10', warnings: 0, banned: false },
+    holybalenciagas: { password: 'X7#kP9$mQ2@vL8&nR4%tW6^eY0!uZ3*xB5-cV9', role: 'owner', ip: '192.168.1.5', warnings: 0, banned: false }
 };
 
 let USERS = { ...INITIAL_USERS };
@@ -12,7 +12,7 @@ function ensureUsersLoaded() {
             const stored = window.localStorage.getItem('registeredUsers');
             if (stored) {
                 const parsed = JSON.parse(stored);
-                USERS = { ...INITIAL_USERS, ...parsed };
+                USERS = { ...INITIAL_USERS, ...sanitizeUsers(parsed) };
                 return USERS;
             }
         } catch (error) {
@@ -48,6 +48,345 @@ function getUserRole(username) {
     return users[username]?.role || 'user';
 }
 
+function sanitizeUsers(users) {
+    const sanitized = {};
+    Object.entries(users || {}).forEach(([username, data]) => {
+        if (!username || typeof username !== 'string' || !isValidUsername(username)) {
+            return;
+        }
+
+        const role = data?.role || 'user';
+        const password = typeof data?.password === 'string' ? data.password : '';
+        const ip = typeof data?.ip === 'string' ? data.ip : `192.168.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}`;
+        const warnings = Number.isFinite(Number(data?.warnings)) ? Number(data.warnings) : 0;
+        const banned = Boolean(data?.banned);
+
+        sanitized[username] = {
+            password,
+            role,
+            ip,
+            warnings,
+            banned
+        };
+    });
+    return sanitized;
+}
+
+function isValidUsername(username) {
+    return /^[a-zA-Z0-9_-]{3,20}$/.test(String(username));
+}
+
+function isValidPassword(password) {
+    return typeof password === 'string' && password.length >= 4 && password.length <= 32;
+}
+
+function getLoginAttempts() {
+    try {
+        const stored = window.localStorage.getItem('loginAttempts');
+        return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function saveLoginAttempts(attempts) {
+    window.localStorage.setItem('loginAttempts', JSON.stringify(attempts));
+}
+
+function cleanLoginAttempts() {
+    const cutoff = Date.now() - 60_000;
+    const attempts = getLoginAttempts().filter((attempt) => attempt.timestamp >= cutoff);
+    saveLoginAttempts(attempts);
+    return attempts;
+}
+
+function recordLoginAttempt(ip) {
+    const attempts = cleanLoginAttempts();
+    attempts.push({ ip, timestamp: Date.now() });
+    saveLoginAttempts(attempts);
+}
+
+function isLoginBlocked(ip) {
+    const attempts = cleanLoginAttempts().filter((attempt) => attempt.ip === ip);
+    return attempts.length >= 6;
+}
+
+function requireRole(allowedRoles) {
+    const currentRole = localStorage.getItem('userRole') || 'user';
+    return allowedRoles.includes(currentRole);
+}
+
+function getSessionIp() {
+    if (typeof window === 'undefined' || !window.localStorage) {
+        return '0.0.0.0';
+    }
+
+    let ip = window.localStorage.getItem('sessionIp');
+    if (!ip) {
+        ip = `192.168.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}`;
+        window.localStorage.setItem('sessionIp', ip);
+    }
+
+    return ip;
+}
+
+function getUserData(username) {
+    const users = ensureUsersLoaded();
+    return users[username] ? { username, ...users[username] } : null;
+}
+
+function updateUser(username, updates) {
+    const users = ensureUsersLoaded();
+    if (!users[username]) {
+        return false;
+    }
+    users[username] = { ...users[username], ...updates };
+    USERS = users;
+    saveUsers();
+    return true;
+}
+
+function getAllUsers() {
+    const users = ensureUsersLoaded();
+    return Object.entries(users).map(([username, data]) => ({
+        username,
+        role: data.role || 'user',
+        ip: data.ip || 'unknown',
+        warnings: data.warnings || 0,
+        banned: Boolean(data.banned)
+    }));
+}
+
+function setUserRole(username, role) {
+    return updateUser(username, { role });
+}
+
+function showRoleMessage(message, type = 'success') {
+    const messageBox = document.getElementById('roleAssignmentMessage');
+    if (messageBox) {
+        messageBox.textContent = message;
+        messageBox.className = `auth-message ${type}`;
+    } else {
+        alert(message);
+    }
+}
+
+function renderRoleManager() {
+    const currentUser = localStorage.getItem('currentUser');
+    const userSelect = document.getElementById('roleUserSelect');
+    const roleList = document.getElementById('roleManagerList');
+    const messageBox = document.getElementById('roleAssignmentMessage');
+    if (!userSelect || !roleList) return;
+
+    const users = getAllUsers();
+    const options = users
+        .filter((user) => user.username !== currentUser)
+        .map((user) => `<option value="${user.username}">${user.username}</option>`)
+        .join('');
+
+    userSelect.innerHTML = options || '<option value="">No players available</option>';
+    roleList.innerHTML = users
+        .map((user) => `
+            <div class="role-row">
+                <span>${user.username}</span>
+                <span class="role-badge">${user.role}</span>
+            </div>
+        `)
+        .join('');
+
+    if (messageBox) {
+        messageBox.textContent = '';
+        messageBox.className = 'auth-message';
+    }
+}
+
+function handleAssignRole() {
+    const username = document.getElementById('roleUserSelect')?.value;
+    const role = document.getElementById('roleSelect')?.value;
+
+    if (!username || !role) {
+        showRoleMessage('Select a player and role first.', 'error');
+        return;
+    }
+
+    if (setUserRole(username, role)) {
+        showRoleMessage(`Updated ${username} to ${role}.`, 'success');
+        renderRoleManager();
+    } else {
+        showRoleMessage('Unable to update user role.', 'error');
+    }
+}
+
+function getBannedIps() {
+    try {
+        const stored = window.localStorage.getItem('bannedIps');
+        return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function saveBannedIps(ips) {
+    window.localStorage.setItem('bannedIps', JSON.stringify(Array.from(new Set(ips))));
+}
+
+function banIp(ip) {
+    const ips = getBannedIps();
+    if (!ips.includes(ip)) {
+        ips.push(ip);
+        saveBannedIps(ips);
+    }
+}
+
+function unbanIp(ip) {
+    const ips = getBannedIps().filter((entry) => entry !== ip);
+    saveBannedIps(ips);
+}
+
+function isIpBanned(ip) {
+    return getBannedIps().includes(ip);
+}
+
+function warnUser(username) {
+    const user = getUserData(username);
+    if (!user) {
+        return false;
+    }
+    return updateUser(username, { warnings: (user.warnings || 0) + 1 });
+}
+
+function renderAdminPanel() {
+    const currentUser = localStorage.getItem('currentUser');
+    const userSelect = document.getElementById('adminUserSelect');
+    const bannedList = document.getElementById('bannedIpList');
+    const userSummary = document.getElementById('adminUserSummary');
+
+    const users = getAllUsers().filter((user) => user.username !== currentUser);
+    if (userSelect) {
+        userSelect.innerHTML = users
+            .map((user) => `<option value="${user.username}">${user.username} (${user.role})</option>`)
+            .join('') || '<option value="">No players available</option>';
+    }
+
+    if (userSummary) {
+        const selectedUsername = userSelect?.value || users[0]?.username;
+        const selectedUser = users.find((user) => user.username === selectedUsername);
+        userSummary.innerHTML = selectedUser
+            ? `<strong>IP:</strong> ${selectedUser.ip}<br><strong>Warnings:</strong> ${selectedUser.warnings}<br><strong>Banned:</strong> ${selectedUser.banned ? 'Yes' : 'No'}`
+            : '<em>Select a player to view details.</em>';
+    }
+
+    if (bannedList) {
+        const bannedIps = getBannedIps();
+        bannedList.innerHTML = bannedIps.length
+            ? bannedIps.map((ip) => `<div class="ban-row"><span>${ip}</span><button type="button" class="btn btn-secondary btn-small" onclick="handleUnbanIp('${ip}')">Unban</button></div>`).join('')
+            : '<div class="empty-state">No banned IPs.</div>';
+    }
+}
+
+function renderModeratorPanel() {
+    const currentUser = localStorage.getItem('currentUser');
+    const userSelect = document.getElementById('moderatorUserSelect');
+    const warningsSummary = document.getElementById('moderatorWarningsList');
+
+    const users = getAllUsers().filter((user) => user.username !== currentUser);
+    if (userSelect) {
+        userSelect.innerHTML = users
+            .map((user) => `<option value="${user.username}">${user.username}</option>`)
+            .join('') || '<option value="">No players available</option>';
+    }
+
+    if (warningsSummary) {
+        warningsSummary.innerHTML = users
+            .map((user) => `<div class="warn-row"><span>${user.username}</span><span>Warnings: ${user.warnings}</span></div>`)
+            .join('') || '<div class="empty-state">No users available.</div>';
+    }
+}
+
+function renderValueManagerPanel() {
+    const itemSelect = document.getElementById('valueItemSelect');
+    const itemSummary = document.getElementById('valueItemSummary');
+    const items = getItems();
+
+    if (itemSelect) {
+        itemSelect.innerHTML = items
+            .map((item, index) => `<option value="${index}">${item.name} (${item.corruptedPages || 0} CP)</option>`)
+            .join('') || '<option value="">No items available</option>';
+    }
+
+    if (itemSummary) {
+        const selectedIndex = Number(itemSelect?.value || 0);
+        const item = items[selectedIndex];
+        itemSummary.innerHTML = item
+            ? `<strong>${item.name}</strong><br>Current CP: ${item.corruptedPages || 0}`
+            : '<em>Select an item to edit corrupted pages.</em>';
+    }
+}
+
+function handleBanIp(selectedIp) {
+    if (!selectedIp) {
+        showRoleMessage('No IP selected to ban.', 'error');
+        return;
+    }
+    banIp(selectedIp);
+    showRoleMessage(`${selectedIp} has been banned.`, 'success');
+    renderAdminPanel();
+}
+
+function handleUnbanIp(ip) {
+    unbanIp(ip);
+    showRoleMessage(`${ip} has been unbanned.`, 'success');
+    renderAdminPanel();
+}
+
+function handleAdminWarn() {
+    const username = document.getElementById('adminUserSelect')?.value;
+    if (!username) {
+        showRoleMessage('Select a player to warn.', 'error');
+        return;
+    }
+    if (warnUser(username)) {
+        showRoleMessage(`${username} has been warned.`, 'success');
+        renderAdminPanel();
+    } else {
+        showRoleMessage('Unable to warn this player.', 'error');
+    }
+}
+
+function handleModeratorWarn() {
+    const username = document.getElementById('moderatorUserSelect')?.value;
+    if (!username) {
+        alert('Select a player to warn.');
+        return;
+    }
+    if (warnUser(username)) {
+        renderModeratorPanel();
+        alert(`${username} has been warned.`);
+    }
+}
+
+function handleUpdateCorruptedPages() {
+    const itemIndex = Number(document.getElementById('valueItemSelect')?.value);
+    const newCp = Number(document.getElementById('valueItemCp')?.value);
+
+    if (!Number.isFinite(newCp)) {
+        alert('Enter a valid corrupted pages value.');
+        return;
+    }
+
+    const items = getItems();
+    if (!items[itemIndex]) {
+        alert('Select a valid item.');
+        return;
+    }
+
+    items[itemIndex].corruptedPages = newCp;
+    saveItems(items);
+    renderValueManagerPanel();
+    loadTableData(localStorage.getItem('userRole') || 'user');
+    alert(`${items[itemIndex].name} corrupted pages updated to ${newCp}.`);
+}
+
 function registerUser(username, password, confirmPassword) {
     const cleanUsername = (username || '').trim();
     const cleanPassword = password || '';
@@ -57,8 +396,12 @@ function registerUser(username, password, confirmPassword) {
         return { success: false, message: '> ERROR: Fill all fields!' };
     }
 
-    if (cleanPassword.length < 4) {
-        return { success: false, message: '> ERROR: Password must be at least 4 characters!' };
+    if (!isValidUsername(cleanUsername)) {
+        return { success: false, message: '> ERROR: Username must be 3-20 letters, numbers, underscores or dashes.' };
+    }
+
+    if (!isValidPassword(cleanPassword)) {
+        return { success: false, message: '> ERROR: Password must be 4-32 characters.' };
     }
 
     if (cleanPassword !== cleanConfirm) {
@@ -70,7 +413,13 @@ function registerUser(username, password, confirmPassword) {
         return { success: false, message: '> ERROR: This player already exists!' };
     }
 
-    users[cleanUsername] = { password: cleanPassword, role: 'user' };
+    users[cleanUsername] = {
+        password: cleanPassword,
+        role: 'user',
+        ip: getSessionIp(),
+        warnings: 0,
+        banned: false
+    };
     USERS = users;
     saveUsers();
 
@@ -101,12 +450,37 @@ function login() {
         return;
     }
 
+    const sessionIp = getSessionIp();
+    if (isLoginBlocked(sessionIp) || isIpBanned(sessionIp)) {
+        showAuthMessage('> ACCESS DENIED: Too many login attempts or IP blocked.');
+        return;
+    }
+
     if (loginUser(username, password)) {
         const role = getUserRole(username);
+        const user = getUserData(username);
+
+        if (user?.banned || isIpBanned(user?.ip)) {
+            showAuthMessage('> ACCESS DENIED: Account or IP is banned.');
+            return;
+        }
+
+        if (!user?.password || password !== user.password) {
+            recordLoginAttempt(sessionIp);
+            showAuthMessage('> ACCESS DENIED!');
+            const passwordField = document.getElementById('loginPassword') || document.getElementById('password');
+            if (passwordField) {
+                passwordField.value = '';
+            }
+            return;
+        }
+
         localStorage.setItem('currentUser', username);
         localStorage.setItem('userRole', role);
+        localStorage.setItem('currentUserIp', sessionIp);
         window.location.href = 'dashboard.html';
     } else {
+        recordLoginAttempt(sessionIp);
         showAuthMessage('> ACCESS DENIED!');
         const passwordField = document.getElementById('loginPassword') || document.getElementById('password');
         if (passwordField) {
@@ -186,14 +560,63 @@ function initDashboard() {
     const userRole = localStorage.getItem('userRole');
 
     const userInfoSpan = document.getElementById('userInfo');
-    const roleBadge = userRole === 'admin' ? ' <span class="admin-badge">⚡ ADMIN ⚡</span>' : '';
+    let roleBadge = '';
+    if (userRole === 'admin') {
+        roleBadge = ' <span class="admin-badge">⚡ ADMIN ⚡</span>'; 
+    } else if (userRole === 'owner') {
+        roleBadge = ' <span class="admin-badge">🌟 OWNER 🌟</span>';
+    }
     userInfoSpan.innerHTML = `Player: <strong>${currentUser}</strong>${roleBadge}`;
 
     const adminPanel = document.getElementById('adminPanel');
+    const adminActionsPanel = document.getElementById('adminActionsPanel');
+    const valueManagerPanel = document.getElementById('valueManagerPanel');
+    const moderatorPanel = document.getElementById('moderatorPanel');
+    const roleManagerPanel = document.getElementById('roleManagerPanel');
     const adminCol = document.getElementById('adminCol');
-    if (userRole === 'admin') {
-        adminPanel.style.display = 'block';
-        adminCol.style.display = 'table-cell';
+
+    if (userRole === 'owner') {
+        if (adminPanel) adminPanel.style.display = 'block';
+    }
+
+    if (userRole === 'admin' || userRole === 'owner') {
+        if (adminActionsPanel) adminActionsPanel.style.display = 'block';
+        if (adminCol) adminCol.style.display = 'table-cell';
+    }
+
+    if (userRole === 'value manager') {
+        if (valueManagerPanel) valueManagerPanel.style.display = 'block';
+        renderValueManagerPanel();
+        document.getElementById('valueItemSelect')?.addEventListener('change', renderValueManagerPanel);
+        document.getElementById('updateValueBtn')?.addEventListener('click', handleUpdateCorruptedPages);
+    }
+
+    if (userRole === 'moderator') {
+        if (moderatorPanel) moderatorPanel.style.display = 'block';
+        renderModeratorPanel();
+        document.getElementById('moderatorUserSelect')?.addEventListener('change', renderModeratorPanel);
+        document.getElementById('moderatorWarnBtn')?.addEventListener('click', handleModeratorWarn);
+    }
+
+    if (userRole === 'owner' && roleManagerPanel) {
+        roleManagerPanel.style.display = 'block';
+        renderRoleManager();
+        document.getElementById('assignRoleBtn')?.addEventListener('click', handleAssignRole);
+    }
+
+    if (adminActionsPanel) {
+        const adminUserSelect = document.getElementById('adminUserSelect');
+        adminUserSelect?.addEventListener('change', renderAdminPanel);
+        document.getElementById('adminWarnBtn')?.addEventListener('click', handleAdminWarn);
+        document.getElementById('adminBanIpBtn')?.addEventListener('click', () => {
+            const selectedName = adminUserSelect?.value;
+            const selectedUser = getUserData(selectedName);
+            if (selectedUser?.ip) {
+                handleBanIp(selectedUser.ip);
+            } else {
+                showRoleMessage('No IP available for the selected user.', 'error');
+            }
+        });
     }
 
     loadTableData(userRole);
@@ -226,6 +649,15 @@ if (typeof window !== 'undefined') {
     window.handleEnter = handleEnter;
     window.setAuthMode = setAuthMode;
     window.logout = logout;
+    window.handleAssignRole = handleAssignRole;
+    window.handleBanIp = handleBanIp;
+    window.handleUnbanIp = handleUnbanIp;
+    window.handleAdminWarn = handleAdminWarn;
+    window.handleModeratorWarn = handleModeratorWarn;
+    window.handleUpdateCorruptedPages = handleUpdateCorruptedPages;
+    window.renderAdminPanel = renderAdminPanel;
+    window.renderModeratorPanel = renderModeratorPanel;
+    window.renderValueManagerPanel = renderValueManagerPanel;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
