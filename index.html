@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Quest Values</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <h1>⚔️ PIXEL QUEST</h1>
+            <p class="subtitle">~ VALUES DATABASE ~</p>
+
+            <div id="loginForm">
+                <div class="form-group">
+                    <label for="username">Player ID</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        placeholder="Enter login..."
+                        onkeypress="handleEnter(event)"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">PASSWORD</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        placeholder="Enter password..."
+                        onkeypress="handleEnter(event)"
+                    >
+                </div>
+
+                <button onclick="login()" class="btn-login">ENTER REALM</button>
+
+                <div class="login-error" id="errorMessage"></div>
+            </div>
+
+            <div class="demo-info">
+                <p>~ DEMO ACCOUNTS ~</p>
+                <p>👨‍💼 admin / <code>admin123</code></p>
+                <p>👤 user / <code>user123</code></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+</body>
+</html>

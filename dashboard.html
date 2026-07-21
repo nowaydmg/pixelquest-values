@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Quest Values</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <h1>⚔️ PIXEL QUEST VALUES</h1>
+            <div class="header-right">
+                <span id="userInfo"></span>
+                <button onclick="logout()" class="btn-logout">LOGOUT</button>
+            </div>
+        </header>
+
+        <div class="container">
+            <div id="adminPanel" style="display: none;" class="admin-panel">
+                <h2>~ ADMIN CONTROL PANEL ~</h2>
+                <div class="add-item-form">
+                    <input type="text" id="itemName" placeholder="Item Name...">
+                    <input type="number" id="itemPrice" placeholder="Gold Price...">
+                    <select id="itemRarity">
+                        <option value="Common">COMMON</option>
+                        <option value="Rare">RARE</option>
+                        <option value="Epic">EPIC</option>
+                        <option value="Legendary">LEGENDARY</option>
+                    </select>
+                    <input type="text" id="itemType" placeholder="Type...">
+                    <button onclick="addItem()" class="btn-add">ADD ITEM</button>
+                </div>
+            </div>
+
+            <div class="search-box">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="Search items..."
+                    onkeyup="filterTable()"
+                >
+            </div>
+
+            <table id="pricesTable">
+                <thead>
+                    <tr>
+                        <th>ITEM</th>
+                        <th>PRICE</th>
+                        <th>RARITY</th>
+                        <th>TYPE</th>
+                        <th id="adminCol" style="display: none;">ACTION</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+
+            <footer>
+                <p>Last Update: <span id="lastUpdate"></span></p>
+            </footer>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

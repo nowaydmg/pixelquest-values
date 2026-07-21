@@ -1,0 +1,529 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Press Start 2P', cursive;
+    background: #1a1a3f;
+    color: #ffff00;
+    min-height: 100vh;
+    padding: 10px;
+    image-rendering: pixelated;
+}
+
+/* LOGIN PAGE */
+.login-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.login-box {
+    background: #000000;
+    border: 4px solid #ffff00;
+    padding: 30px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 0 30px #ffff00, inset 0 0 20px rgba(255, 255, 0, 0.1);
+    text-align: center;
+}
+
+.login-box h1 {
+    font-size: 1.8em;
+    color: #ffff00;
+    text-shadow: 3px 3px 0px #ff0000;
+    margin-bottom: 5px;
+    letter-spacing: 2px;
+}
+
+.subtitle {
+    color: #00ffff;
+    margin-bottom: 25px;
+    font-size: 0.7em;
+    text-shadow: 1px 1px 0px #00ff00;
+}
+
+.form-group {
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #00ffff;
+    font-size: 0.65em;
+    text-shadow: 1px 1px 0px #0099ff;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    background: #003300;
+    border: 2px solid #00ff00;
+    color: #00ff00;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.65em;
+    transition: all 0.1s ease;
+}
+
+.form-group input:focus {
+    outline: none;
+    background: #006600;
+    box-shadow: 0 0 15px #00ff00, inset 0 0 10px rgba(0, 255, 0, 0.3);
+    border-color: #ffff00;
+}
+
+.form-group input::placeholder {
+    color: #006600;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 12px;
+    background: #0066ff;
+    border: 3px solid #ffff00;
+    color: #ffff00;
+    font-weight: bold;
+    font-size: 0.65em;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    margin-top: 15px;
+    font-family: 'Press Start 2P', cursive;
+    text-shadow: 2px 2px 0px #000000;
+}
+
+.btn-login:hover {
+    background: #0099ff;
+    box-shadow: 0 0 20px #ffff00, 0 0 10px #0099ff;
+    transform: translate(2px, -2px);
+}
+
+.btn-login:active {
+    transform: translate(0px, 0px);
+}
+
+.login-error {
+    color: #ff0000;
+    margin-top: 15px;
+    font-size: 0.6em;
+    display: none;
+    text-shadow: 1px 1px 0px #ffff00;
+}
+
+.login-error.show {
+    display: block;
+}
+
+.demo-info {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid #ffff00;
+    font-size: 0.6em;
+    color: #00ff00;
+}
+
+.demo-info p {
+    margin: 8px 0;
+}
+
+.demo-info code {
+    background: #003300;
+    padding: 2px 5px;
+    border: 1px solid #00ff00;
+    color: #ffff00;
+    font-family: monospace;
+}
+
+/* DASHBOARD */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.dashboard-header {
+    background: #000000;
+    border-bottom: 4px solid #ffff00;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    box-shadow: 0 0 20px rgba(255, 255, 0, 0.3);
+}
+
+.dashboard-header h1 {
+    color: #ffff00;
+    font-size: 1.2em;
+    text-shadow: 3px 3px 0px #ff0000;
+    letter-spacing: 2px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 0.65em;
+}
+
+#userInfo {
+    color: #00ffff;
+    text-shadow: 1px 1px 0px #0099ff;
+}
+
+#userInfo strong {
+    color: #ffff00;
+}
+
+#userInfo .admin-badge {
+    background: #ff0000;
+    color: #ffff00;
+    padding: 2px 6px;
+    border: 1px solid #ffff00;
+    margin-left: 5px;
+    font-weight: bold;
+    text-shadow: 1px 1px 0px #000000;
+}
+
+.btn-logout {
+    padding: 8px 12px;
+    background: #ff0000;
+    border: 2px solid #ffff00;
+    color: #ffff00;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.1s ease;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.65em;
+    text-shadow: 1px 1px 0px #000000;
+}
+
+.btn-logout:hover {
+    background: #ff3333;
+    box-shadow: 0 0 15px #ff0000;
+    transform: translate(2px, -2px);
+}
+
+.btn-logout:active {
+    transform: translate(0px, 0px);
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: #000000;
+    border: 4px solid #ffff00;
+    border-radius: 0;
+    padding: 20px;
+    box-shadow: 0 0 30px rgba(255, 255, 0, 0.3), inset 0 0 20px rgba(255, 255, 0, 0.05);
+    flex: 1;
+}
+
+.admin-panel {
+    background: #330000;
+    border: 3px solid #ff0000;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.2);
+}
+
+.admin-panel h2 {
+    color: #ff0000;
+    margin-bottom: 12px;
+    font-size: 0.8em;
+    text-shadow: 1px 1px 0px #ffff00;
+}
+
+.add-item-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr auto;
+    gap: 8px;
+}
+
+.add-item-form input,
+.add-item-form select {
+    padding: 8px;
+    background: #003300;
+    border: 2px solid #00ff00;
+    color: #00ff00;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.6em;
+    transition: all 0.1s ease;
+}
+
+.add-item-form input:focus,
+.add-item-form select:focus {
+    outline: none;
+    background: #006600;
+    box-shadow: 0 0 10px #00ff00;
+    border-color: #ffff00;
+}
+
+.add-item-form option {
+    background: #003300;
+    color: #00ff00;
+}
+
+.btn-add {
+    padding: 8px 12px;
+    background: #00aa00;
+    border: 2px solid #ffff00;
+    color: #ffff00;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.1s ease;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.6em;
+    text-shadow: 1px 1px 0px #000000;
+}
+
+.btn-add:hover {
+    background: #00dd00;
+    box-shadow: 0 0 15px #00ff00;
+    transform: translate(2px, -2px);
+}
+
+.btn-add:active {
+    transform: translate(0px, 0px);
+}
+
+.btn-delete {
+    padding: 6px 10px;
+    background: #ff0000;
+    border: 2px solid #ffff00;
+    color: #ffff00;
+    cursor: pointer;
+    font-size: 0.6em;
+    transition: all 0.1s ease;
+    font-family: 'Press Start 2P', cursive;
+    text-shadow: 1px 1px 0px #000000;
+}
+
+.btn-delete:hover {
+    background: #ff3333;
+    box-shadow: 0 0 10px #ff0000;
+    transform: translate(1px, -1px);
+}
+
+.btn-delete:active {
+    transform: translate(0px, 0px);
+}
+
+@media (max-width: 1200px) {
+    .add-item-form {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .add-item-form {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .header-right {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: rgba(10, 10, 20, 0.8);
+    border: 2px solid #8b5cf6;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
+    flex: 1;
+}
+
+.search-box {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+#searchInput {
+    width: 100%;
+    max-width: 500px;
+    padding: 10px;
+    background: #003300;
+    border: 2px solid #00ff00;
+    color: #00ff00;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.65em;
+    transition: all 0.1s ease;
+}
+
+#searchInput:focus {
+    outline: none;
+    background: #006600;
+    box-shadow: 0 0 20px #00ff00, inset 0 0 10px rgba(0, 255, 0, 0.2);
+    border-color: #ffff00;
+}
+
+#searchInput::placeholder {
+    color: #006600;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    background: #000000;
+    border: 2px solid #ffff00;
+    box-shadow: 0 0 10px rgba(255, 255, 0, 0.2);
+}
+
+thead {
+    background: #003300;
+    border-bottom: 2px solid #00ff00;
+}
+
+th {
+    padding: 12px;
+    text-align: left;
+    color: #00ff00;
+    font-weight: bold;
+    font-size: 0.65em;
+    text-shadow: 1px 1px 0px #000000;
+    border-right: 1px solid #00ff00;
+}
+
+th:last-child {
+    border-right: none;
+}
+
+tbody tr {
+    border-bottom: 1px solid #333333;
+    transition: all 0.1s ease;
+}
+
+tbody tr:hover {
+    background: #001100;
+    box-shadow: inset 0 0 15px rgba(0, 255, 0, 0.2);
+}
+
+td {
+    padding: 12px;
+    color: #ffff00;
+    font-size: 0.65em;
+    border-right: 1px solid #333333;
+    text-shadow: 1px 1px 0px #000000;
+}
+
+td:last-child {
+    border-right: none;
+}
+
+.rarity-common {
+    color: #aaaaaa;
+    font-weight: bold;
+}
+
+.rarity-rare {
+    color: #0099ff;
+    font-weight: bold;
+    text-shadow: 0 0 5px #0099ff, 1px 1px 0px #000000;
+}
+
+.rarity-epic {
+    color: #9900ff;
+    font-weight: bold;
+    text-shadow: 0 0 5px #9900ff, 1px 1px 0px #000000;
+}
+
+.rarity-legendary {
+    color: #ffaa00;
+    font-weight: bold;
+    text-shadow: 0 0 10px #ffaa00, 1px 1px 0px #000000;
+}
+
+footer {
+    text-align: center;
+    color: #00ffff;
+    border-top: 2px solid #ffff00;
+    padding-top: 15px;
+    margin-top: 20px;
+    font-size: 0.65em;
+    text-shadow: 1px 1px 0px #000000;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .add-item-form {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .add-item-form {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .dashboard-header h1 {
+        font-size: 1em;
+    }
+
+    .header-right {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .login-box h1 {
+        font-size: 1.2em;
+    }
+
+    th, td {
+        padding: 8px;
+        font-size: 0.55em;
+    }
+
+    table {
+        display: block;
+        overflow-x: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 5px;
+    }
+
+    .login-box {
+        padding: 15px;
+    }
+
+    .container {
+        padding: 10px;
+    }
+
+    .login-box h1 {
+        font-size: 1em;
+        text-shadow: 2px 2px 0px #ff0000;
+    }
+
+    .form-group input {
+        font-size: 0.55em;
+    }
+
+    .btn-login {
+        font-size: 0.55em;
+    }
+}
