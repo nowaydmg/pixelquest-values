@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     if (path === '/login' && req.method === 'POST') {
         const { username, password, csrfToken } = req.body || {};
         if (!username || !password) return json(res, 400, { error: 'Username and password required' });
-        if (!validateCsrfToken(csrfToken)) return json(res, 403, { error: 'Invalid CSRF token' });
+        if (!validateCsrfToken(csrfToken, req)) return json(res, 403, { error: 'Invalid CSRF token' });
 
         try {
             const rows = await sql('SELECT * FROM user_profiles WHERE username = ?', username.trim());
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
         const { username, password, csrfToken } = req.body || {};
         if (!username || !password) return json(res, 400, { error: 'Username and password required' });
         if (password.length < 6) return json(res, 400, { error: 'Password must be at least 6 characters' });
-        if (!validateCsrfToken(csrfToken)) return json(res, 403, { error: 'Invalid CSRF token' });
+        if (!validateCsrfToken(csrfToken, req)) return json(res, 403, { error: 'Invalid CSRF token' });
 
         const cleanUsername = username.trim();
         const cleanPassword = password.trim();
