@@ -156,15 +156,6 @@ body {
     color: #86efac;
 }
 
-.demo-info {
-    margin-top: 16px;
-    border-top: 1px solid rgba(255,255,255,0.14);
-    padding-top: 12px;
-    color: #a78bfa;
-    font-size: 0.56rem;
-    line-height: 1.7;
-}
-
 .dashboard-container {
     display: flex;
     flex-direction: column;
