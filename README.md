@@ -1,112 +1,53 @@
 # Pixel Quest Values
 
-Modern item vault for Pixel Quest game items — **Supabase backend + Vercel hosting**.
+Panel wartości przedmiotów Pixel Quest, wdrożony na Vercel z bazą Turso.
 
-## Stack
+## Wymagania
 
-| Warstwa | Technologia |
-|---------|-------------|
-| Frontend | HTML, CSS, Vanilla JS |
-| Baza danych | Supabase (PostgreSQL) |
-| Auth | Supabase Auth |
-| Hosting | Vercel (static + serverless API) |
-| Bezpieczeństwo | Row Level Security (RLS) |
+- Node.js 20 lub nowszy
+- baza Turso / libSQL
+- projekt Vercel
 
-## Szybki start
+## Konfiguracja bazy
 
-### 1. Supabase — wklej SQL
+1. Utwórz bazę Turso.
+2. Uruchom w niej cały plik `turso-schema.sql`.
+3. Skopiuj `.env.example` do `.env` i ustaw trzy zmienne:
 
-1. Wejdź na [supabase.com](https://supabase.com) → twój projekt
-2. **SQL Editor** → New query
-3. Skopiuj całą zawartość pliku **`supabase-schema.sql`** i uruchom (Run)
-
-### 2. Supabase — wyłącz potwierdzenie email
-
-1. **Authentication** → **Providers** → **Email**
-2. Wyłącz **Confirm email** (dla testów lokalnych)
-3. W **Authentication** → **Settings** → dodaj do **Site URL**: `http://localhost:8080`
-
-### 3. Klucze API
-
-1. **Project Settings** → **API**
-2. Skopiuj **Project URL** i **anon public** key
-3. Wklej do `supabase-config.js`:
-
-```javascript
-const SUPABASE_URL = 'https://TWOJ-PROJEKT.supabase.co';
-const SUPABASE_ANON_KEY = 'twoj-anon-key';
+```env
+TURSO_DATABASE_URL=libsql://twoja-baza-twoja-organizacja.turso.io
+TURSO_AUTH_TOKEN=token-z-turso
+JWT_SECRET=dlugi-losowy-sekret
 ```
 
-### 4. Lokalnie
+`JWT_SECRET` wygenerujesz np. poleceniem `openssl rand -hex 32`.
+
+## Uruchomienie lokalne
 
 ```bash
 npm install
 npm run dev
 ```
 
-Otwórz: http://localhost:8080
+Strona statyczna będzie dostępna pod `http://localhost:8080`. Do testowania logowania i API lokalnie użyj `vercel dev`, ponieważ zwykły serwer statyczny nie uruchamia katalogu `api`.
 
-Pierwszy zarejestrowany użytkownik dostaje rolę **owner** automatycznie.
+## Wdrożenie na Vercel
 
-### 5. Deploy na Vercel
+W ustawieniach projektu Vercel dodaj dla środowiska Production i Preview:
 
-```bash
-npm i -g vercel
-vercel
-```
+- `TURSO_DATABASE_URL`
+- `TURSO_AUTH_TOKEN`
+- `JWT_SECRET`
 
-W Vercel Dashboard → **Settings** → **Environment Variables**:
+Następnie wypchnij zmiany do gałęzi połączonej z Vercel. Po deployu adres
+`/api/auth/csrf` powinien zwrócić JSON z polem `csrfToken`.
 
-| Zmienna | Wartość |
-|---------|---------|
-| `SUPABASE_URL` | URL projektu Supabase |
-| `SUPABASE_ANON_KEY` | anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | service_role key (tylko dla API) |
+## API
 
-## API routes (Vercel)
+- `/api/auth/csrf`, `/api/auth/login`, `/api/auth/register`, `/api/auth/session`, `/api/auth/logout`
+- `/api/items`
+- `/api/trades/offers`, `/api/trades/requests`
+- `/api/messages`, `/api/messages/notifications`
+- `/api/users`, `/api/users/banned-ips`
 
-| Endpoint | Metoda | Opis |
-|----------|--------|------|
-| `/api/health` | GET | Status serwisu + połączenie z DB |
-| `/api/admin/user-action` | POST | Ban/unban użytkownika (service_role) |
-
-Przykład ban:
-
-```bash
-curl -X POST https://twoja-app.vercel.app/api/admin/user-action \
-  -H "Content-Type: application/json" \
-  -d '{"username":"gracz1","action":"ban"}'
-```
-
-## Struktura plików
-
-```
-pixel-quest-prices/
-├── index.html          # Logowanie / rejestracja
-├── dashboard.html      # Główna aplikacja
-├── auth.js             # Supabase Auth
-├── db.js               # Warstwa danych (CRUD)
-├── script.js           # UI i logika frontendu
-├── supabase-config.js  # URL + anon key
-├── supabase-schema.sql # Schema bazy — WKLEJ W SUPABASE
-├── api/
-│   ├── health.js
-│   └── admin/user-action.js
-├── vercel.json
-└── .env.example
-```
-
-## Role
-
-- **owner** — pełny dostęp, pierwszy użytkownik
-- **admin** — zarządzanie itemami, banowanie
-- **moderator** — raporty, ostrzeżenia
-- **user** — podstawowy dostęp
-
-## Logowanie
-
-Użytkownicy logują się **nickiem** (Player ID). W tle tworzony jest email: `nick@pixelquest.local`.
-
-## License
-
-MIT
+Pierwsze utworzone konto otrzymuje rolę `owner`.

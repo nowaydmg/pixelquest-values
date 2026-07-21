@@ -1,13 +1,13 @@
 // Data layer — all DB reads/writes via backend API with HTTP-only cookies and CSRF protection
 
-let csrfToken = null;
+let apiCsrfToken = null;
 
 async function getCsrfToken() {
     try {
         const res = await fetch('/api/auth/csrf', { credentials: 'include' });
         const data = await res.json();
-        csrfToken = data.csrfToken;
-        return csrfToken;
+        apiCsrfToken = data.csrfToken;
+        return apiCsrfToken;
     } catch (err) {
         console.error('Failed to get CSRF token:', err);
         return null;
@@ -21,8 +21,8 @@ function apiHeaders() {
 async function apiFetch(method, path, body) {
     const opts = { method, headers: apiHeaders(), credentials: 'include' };
     if (body) {
-        if (!csrfToken) await getCsrfToken();
-        opts.body = JSON.stringify({ ...body, csrfToken });
+        if (!apiCsrfToken) await getCsrfToken();
+        opts.body = JSON.stringify({ ...body, csrfToken: apiCsrfToken });
     }
     const res = await fetch(path, opts);
     if (!res.ok) {
@@ -31,7 +31,7 @@ async function apiFetch(method, path, body) {
     }
     const data = await res.json();
     if (data.csrfToken) {
-        csrfToken = data.csrfToken;
+        apiCsrfToken = data.csrfToken;
     }
     return data;
 }

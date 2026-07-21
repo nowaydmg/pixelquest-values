@@ -1,5 +1,5 @@
-import { sql } from '../../lib/turso.js';
-import { cors, json } from '../../lib/auth.js';
+import { sql } from '../lib/turso.js';
+import { cors, json } from '../lib/auth.js';
 
 export default async function handler(req, res) {
     cors(res);
