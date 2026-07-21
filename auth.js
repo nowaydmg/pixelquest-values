@@ -416,9 +416,13 @@ function registerUser(username, password, confirmPassword) {
         return { success: false, message: '> ERROR: This player already exists!' };
     }
 
+    // First registered user becomes owner
+    const isFirstUser = Object.keys(users).length === 0;
+    const role = isFirstUser ? 'owner' : 'user';
+
     users[cleanUsername] = {
         password: cleanPassword,
-        role: 'user',
+        role: role,
         ip: getSessionIp(),
         warnings: 0,
         banned: false
@@ -426,7 +430,7 @@ function registerUser(username, password, confirmPassword) {
     USERS = users;
     saveUsers();
 
-    return { success: true, message: `> SUCCESS: Welcome, ${cleanUsername}!` };
+    return { success: true, message: isFirstUser ? `> SUCCESS: Welcome, ${cleanUsername}! You are the first user - you have OWNER role.` : `> SUCCESS: Welcome, ${cleanUsername}!` };
 }
 
 function loginUser(username, password) {
