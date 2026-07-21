@@ -574,6 +574,7 @@ function initDashboard() {
     const moderatorPanel = document.getElementById('moderatorPanel');
     const roleManagerPanel = document.getElementById('roleManagerPanel');
     const adminCol = document.getElementById('adminCol');
+    const reportNavBtn = document.getElementById('reportNavBtn');
 
     if (userRole === 'owner') {
         if (adminPanel) adminPanel.style.display = 'block';
@@ -582,6 +583,10 @@ function initDashboard() {
     if (userRole === 'admin' || userRole === 'owner') {
         if (adminActionsPanel) adminActionsPanel.style.display = 'block';
         if (adminCol) adminCol.style.display = 'table-cell';
+    }
+
+    if (userRole === 'admin' || userRole === 'owner') {
+        if (reportNavBtn) reportNavBtn.style.display = 'inline-block';
     }
 
     if (userRole === 'value manager') {
