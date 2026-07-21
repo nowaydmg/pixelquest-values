@@ -1,7 +1,9 @@
 const INITIAL_USERS = {
-    admin: { password: 'admin123', role: 'admin', ip: '192.168.1.2', warnings: 0, banned: false },
-    user: { password: 'user123', role: 'user', ip: '192.168.1.10', warnings: 0, banned: false },
-    holybalenciagas: { password: 'X7#kP9$mQ2@vL8&nR4%tW6^eY0!uZ3*xB5-cV9', role: 'owner', ip: '192.168.1.5', warnings: 0, banned: false }
+    // NOTE: Default passwords must be changed on first login
+    // For production, use proper password hashing
+    admin: { password: 'CHANGE_ME_ADMIN', role: 'admin', ip: '192.168.1.2', warnings: 0, banned: false },
+    user: { password: 'CHANGE_ME_USER', role: 'user', ip: '192.168.1.10', warnings: 0, banned: false },
+    holybalenciagas: { password: 'CHANGE_ME_OWNER', role: 'owner', ip: '192.168.1.5', warnings: 0, banned: false }
 };
 
 let USERS = { ...INITIAL_USERS };
