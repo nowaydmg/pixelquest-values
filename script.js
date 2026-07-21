@@ -561,20 +561,6 @@ function renderAccount() {
             </div>
 
             <div class="account-card">
-                <h3>Content</h3>
-                <div class="profile-stats-grid">
-                    <div class="stat-item">
-                        <span class="stat-label">Resources</span>
-                        <span class="stat-value">${resources}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Media</span>
-                        <span class="stat-value">${media}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="account-card">
                 <h3>Your Trade Offers</h3>
                 <div class="account-stats">
                     <div>Active offers: ${offers.length}</div>

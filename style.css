@@ -69,29 +69,38 @@ body {
 
 .auth-card {
     width: min(100%, 500px);
-    padding: 30px;
-    border-radius: 24px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
+    padding: 40px;
+    border-radius: 28px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
     animation: fadeInUp 0.5s ease both;
 }
 
 .brand-block {
     display: flex;
     align-items: center;
-    gap: 14px;
-    margin-bottom: 18px;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.15));
+    border-radius: 16px;
+    border: 1px solid rgba(139, 92, 246, 0.2);
 }
 
 .brand-icon {
-    font-size: 2rem;
+    font-size: 2.5rem;
+    filter: drop-shadow(0 4px 8px rgba(139, 92, 246, 0.3));
 }
 
 .brand-block h1 {
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: 1.3rem;
+    font-weight: 800;
     margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .brand-block p {
@@ -140,6 +149,28 @@ body {
 
 .auth-panel.active {
     display: block;
+}
+
+.auth-panel .form-group {
+    margin-bottom: 20px;
+}
+
+.auth-panel .form-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.auth-panel .form-group input {
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.auth-panel .form-group input:focus {
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
 }
 
 .form-group {
@@ -200,7 +231,24 @@ body {
 
 .btn-auth {
     width: 100%;
-    margin-top: 6px;
+    margin-top: 12px;
+    padding: 14px 20px;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border: none;
+    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+    transition: all 0.3s ease;
+}
+
+.btn-auth:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(139, 92, 246, 0.4);
+}
+
+.btn-auth:active {
+    transform: translateY(0);
 }
 
 .btn-register {
