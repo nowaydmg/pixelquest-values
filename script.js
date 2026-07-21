@@ -1,25 +1,38 @@
-// Domyślne dane przedmiotów
 const defaultItems = [
-    { icon: '📜', name: 'Ancient Scroll Fragment', price: 150, corruptedPages: 42, tier: 'A', rarity: 'Rare', type: 'Crafting Material' },
-    { icon: '🪻', name: 'Cursed Amulet', price: 450, corruptedPages: 88, tier: 'S', rarity: 'Epic', type: 'Accessory' },
-    { icon: '💎', name: 'Corrupted Core', price: 280, corruptedPages: 56, tier: 'B', rarity: 'Rare', type: 'Crafting Material' },
-    { icon: '🔮', name: 'Dark Crystal', price: 320, corruptedPages: 64, tier: 'A', rarity: 'Epic', type: 'Crafting Material' },
-    { icon: '🗡️', name: 'Enchanted Dagger', price: 380, corruptedPages: 70, tier: 'A', rarity: 'Rare', type: 'Weapon' },
-    { icon: '📖', name: 'Forbidden Grimoire', price: 520, corruptedPages: 95, tier: 'S', rarity: 'Epic', type: 'Quest Item' },
-    { icon: '✨', name: 'Glowing Essence', price: 95, corruptedPages: 18, tier: 'C', rarity: 'Common', type: 'Crafting Material' },
-    { icon: '🛡️', name: 'Obsidian Helm', price: 410, corruptedPages: 76, tier: 'A', rarity: 'Epic', type: 'Armor' },
-    { icon: '🌙', name: "Phantom's Whisper", price: 620, corruptedPages: 110, tier: 'S', rarity: 'Legendary', type: 'Weapon' },
-    { icon: '🪙', name: 'Rusted Coin', price: 45, corruptedPages: 10, tier: 'C', rarity: 'Common', type: 'Currency' },
-    { icon: '🧥', name: 'Shadow Cloak', price: 390, corruptedPages: 72, tier: 'A', rarity: 'Epic', type: 'Armor' },
-    { icon: '🕯️', name: 'Soul Fragment', price: 550, corruptedPages: 100, tier: 'S', rarity: 'Legendary', type: 'Crafting Material' },
-    { icon: '🧪', name: 'Tainted Potion', price: 120, corruptedPages: 24, tier: 'B', rarity: 'Common', type: 'Consumable' },
-    { icon: '💠', name: 'Void Shard', price: 670, corruptedPages: 120, tier: 'S', rarity: 'Legendary', type: 'Crafting Material' }
+    { icon: '📜', name: 'Ancient Scroll Fragment', corruptedPages: 42, tier: 'A', rarity: 'Rare', type: 'Crafting Material' },
+    { icon: '🪻', name: 'Cursed Amulet', corruptedPages: 88, tier: 'S', rarity: 'Epic', type: 'Accessory' },
+    { icon: '💎', name: 'Corrupted Core', corruptedPages: 56, tier: 'B', rarity: 'Rare', type: 'Crafting Material' },
+    { icon: '🔮', name: 'Dark Crystal', corruptedPages: 64, tier: 'A', rarity: 'Epic', type: 'Crafting Material' },
+    { icon: '🗡️', name: 'Enchanted Dagger', corruptedPages: 70, tier: 'A', rarity: 'Rare', type: 'Weapon' },
+    { icon: '📖', name: 'Forbidden Grimoire', corruptedPages: 95, tier: 'S', rarity: 'Epic', type: 'Quest Item' },
+    { icon: '✨', name: 'Glowing Essence', corruptedPages: 18, tier: 'C', rarity: 'Common', type: 'Crafting Material' },
+    { icon: '🛡️', name: 'Obsidian Helm', corruptedPages: 76, tier: 'A', rarity: 'Epic', type: 'Armor' },
+    { icon: '🌙', name: "Phantom's Whisper", corruptedPages: 110, tier: 'S', rarity: 'Legendary', type: 'Weapon' },
+    { icon: '🪙', name: 'Rusted Coin', corruptedPages: 10, tier: 'C', rarity: 'Common', type: 'Currency' },
+    { icon: '🧥', name: 'Shadow Cloak', corruptedPages: 72, tier: 'A', rarity: 'Epic', type: 'Armor' },
+    { icon: '🕯️', name: 'Soul Fragment', corruptedPages: 100, tier: 'S', rarity: 'Legendary', type: 'Crafting Material' },
+    { icon: '🧪', name: 'Tainted Potion', corruptedPages: 24, tier: 'B', rarity: 'Common', type: 'Consumable' },
+    { icon: '💠', name: 'Void Shard', corruptedPages: 120, tier: 'S', rarity: 'Legendary', type: 'Crafting Material' }
 ];
 
 let currentSort = { key: 'corruptedPages', direction: 'desc' };
+let editingIndex = null;
+
+function getItems() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('items'));
+        return Array.isArray(stored) ? stored : defaultItems;
+    } catch (error) {
+        return defaultItems;
+    }
+}
+
+function saveItems(items) {
+    localStorage.setItem('items', JSON.stringify(items));
+}
 
 function loadTableData(userRole) {
-    let items = JSON.parse(localStorage.getItem('items')) || defaultItems;
+    const items = getItems();
     const sortedItems = sortItems(items, currentSort.key, currentSort.direction);
     renderTable(sortedItems, userRole);
     updateLastUpdate();
@@ -60,27 +73,42 @@ function toggleSort(key) {
     loadTableData(userRole);
 }
 
+function getIconHtml(item) {
+    if (!item.icon) {
+        return '<span class="item-icon">✦</span>';
+    }
+
+    const isImageUrl = /^https?:\/\//i.test(item.icon) || /^data:image\//i.test(item.icon);
+    if (isImageUrl) {
+        return `<img class="item-image" src="${item.icon}" alt="${item.name}" onerror="this.style.display='none'; this.parentElement.innerHTML='✦';">`;
+    }
+
+    return `<span class="item-icon">${item.icon}</span>`;
+}
+
 function renderTable(items, userRole) {
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
 
+    if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No items available yet.</td></tr>';
+        return;
+    }
+
     items.forEach((item, index) => {
         const row = document.createElement('tr');
-        const rarityClass = `rarity-${item.rarity.toLowerCase()}`;
-        
-        let actionsCell = '';
-        if (userRole === 'admin') {
-            actionsCell = `<td><button onclick="deleteItem(${index})" class="btn-delete">Usuń</button></td>`;
-        }
-
-        const iconCell = item.icon
-            ? `<img class="item-image" src="${item.icon}" alt="${item.name}" onerror="this.style.display='none'; this.parentElement.innerHTML='—';">`
-            : '<span class="item-icon">—</span>';
+        const rarityClass = `rarity-${(item.rarity || 'common').toLowerCase()}`;
         const corruptedPages = item.corruptedPages !== undefined ? item.corruptedPages : '—';
         const tier = item.tier ? item.tier : '—';
 
+        let actionsCell = '';
+        if (userRole === 'admin') {
+            actionsCell = `<td><div class="table-actions"><button onclick="startEditItem(${index})" class="btn-table btn-edit">Edit</button><button onclick="deleteItem(${index})" class="btn-table btn-delete">Delete</button></div></td>`;
+        }
+
+        row.dataset.searchText = `${item.name} ${item.icon || ''} ${item.type || ''} ${item.rarity || ''} ${item.tier || ''}`.toLowerCase();
         row.innerHTML = `
-            <td>${iconCell}</td>
+            <td>${getIconHtml(item)}</td>
             <td>${item.name}</td>
             <td>${corruptedPages}</td>
             <td>${tier}</td>
@@ -92,11 +120,21 @@ function renderTable(items, userRole) {
     });
 }
 
-// Dodaj przedmiot (tylko admin)
-function addItem() {
+function resetForm() {
+    document.getElementById('itemIcon').value = '';
+    document.getElementById('itemName').value = '';
+    document.getElementById('itemCorruptedPages').value = '';
+    document.getElementById('itemTier').value = '';
+    document.getElementById('itemType').value = '';
+    document.getElementById('itemRarity').value = 'Common';
+    document.getElementById('editingItemIndex').value = '';
+    editingIndex = null;
+    document.getElementById('saveItemBtn').textContent = 'Add item';
+}
+
+function saveItem() {
     const icon = document.getElementById('itemIcon').value.trim();
     const name = document.getElementById('itemName').value.trim();
-    const price = parseInt(document.getElementById('itemPrice').value);
     const corruptedPages = document.getElementById('itemCorruptedPages').value.trim();
     const tier = document.getElementById('itemTier').value.trim();
     const rarity = document.getElementById('itemRarity').value;
@@ -107,51 +145,152 @@ function addItem() {
         return;
     }
 
-    let items = JSON.parse(localStorage.getItem('items')) || defaultItems;
-    items.push({ icon, name, price, corruptedPages: corruptedPages ? parseInt(corruptedPages) : undefined, tier, rarity, type });
-    localStorage.setItem('items', JSON.stringify(items));
+    const items = getItems();
+    const itemPayload = { icon, name, corruptedPages: corruptedPages ? parseInt(corruptedPages, 10) : undefined, tier, rarity, type };
 
-    document.getElementById('itemIcon').value = '';
-    document.getElementById('itemName').value = '';
-    document.getElementById('itemPrice').value = '';
-    document.getElementById('itemCorruptedPages').value = '';
-    document.getElementById('itemTier').value = '';
-    document.getElementById('itemType').value = '';
-    document.getElementById('itemRarity').value = 'Common';
+    if (editingIndex !== null) {
+        items[editingIndex] = { ...items[editingIndex], ...itemPayload };
+    } else {
+        items.push(itemPayload);
+    }
 
+    saveItems(items);
+    resetForm();
     loadTableData('admin');
 }
 
-// Usuń przedmiot (tylko admin)
+function startEditItem(index) {
+    const items = getItems();
+    const item = items[index];
+    if (!item) return;
+
+    editingIndex = index;
+    document.getElementById('editingItemIndex').value = index;
+    document.getElementById('itemIcon').value = item.icon || '';
+    document.getElementById('itemName').value = item.name || '';
+    document.getElementById('itemCorruptedPages').value = item.corruptedPages || '';
+    document.getElementById('itemTier').value = item.tier || '';
+    document.getElementById('itemType').value = item.type || '';
+    document.getElementById('itemRarity').value = item.rarity || 'Common';
+    document.getElementById('saveItemBtn').textContent = 'Save changes';
+}
+
 function deleteItem(index) {
     if (confirm('>>> REMOVE ITEM? <<<')) {
-        let items = JSON.parse(localStorage.getItem('items')) || defaultItems;
+        const items = getItems();
         items.splice(index, 1);
-        localStorage.setItem('items', JSON.stringify(items));
+        saveItems(items);
+        if (editingIndex === index) {
+            resetForm();
+        } else if (editingIndex !== null && editingIndex > index) {
+            editingIndex -= 1;
+        }
         loadTableData('admin');
     }
 }
 
-// Filtruj tabelę
 function filterTable() {
-    const input = document.getElementById('searchInput').value.toLowerCase();
-    const rows = document.getElementById('pricesTable').getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    const query = document.getElementById('searchInput').value.trim().toLowerCase();
+    const rows = document.querySelectorAll('#pricesTable tbody tr');
 
-    for (let i = 0; i < rows.length; i++) {
-        const text = rows[i].textContent.toLowerCase();
-        rows[i].style.display = text.includes(input) ? '' : 'none';
-    }
+    rows.forEach((row) => {
+        const text = row.dataset.searchText || '';
+        row.style.display = text.includes(query) ? '' : 'none';
+    });
 }
 
-// Aktualizuj czas ostatniej zmiany
 function updateLastUpdate() {
     const now = new Date();
     const dateStr = now.toLocaleDateString('pl-PL') + ' ' + now.toLocaleTimeString('pl-PL');
     document.getElementById('lastUpdate').textContent = dateStr;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function setTheme(theme) {
+    const resolvedTheme = theme === 'light' ? 'light' : 'dark';
+    document.body.classList.toggle('theme-light', resolvedTheme === 'light');
+    localStorage.setItem('theme', resolvedTheme);
+    const button = document.getElementById('themeToggle');
+    if (button) {
+        button.textContent = resolvedTheme === 'light' ? '🌙 Dark' : '☀️ Light';
+    }
+}
+
+function exportItemsAsJson() {
+    const items = getItems();
+    const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'pixel-quest-items.json';
+    link.click();
+    URL.revokeObjectURL(link.href);
+}
+
+function exportItemsAsCsv() {
+    const items = getItems();
+    const rows = [
+        ['name', 'icon', 'corruptedPages', 'tier', 'rarity', 'type'].join(','),
+        ...items.map((item) => [
+            `"${(item.name || '').replace(/"/g, '""')}"`,
+            `"${(item.icon || '').replace(/"/g, '""')}"`,
+            item.corruptedPages || '',
+            item.tier || '',
+            item.rarity || '',
+            item.type || ''
+        ].join(','))
+    ];
+
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'pixel-quest-items.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+}
+
+function importItemsFromFile(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            const data = JSON.parse(reader.result);
+            if (Array.isArray(data)) {
+                saveItems(data);
+                loadTableData('admin');
+            }
+        } catch (error) {
+            alert('> ERROR: Invalid JSON file');
+        }
+    };
+    reader.readAsText(file);
+}
+
+function initDashboardControls() {
     document.querySelectorAll('.sort-btn').forEach((button) => {
         button.addEventListener('click', () => toggleSort(button.dataset.sort));
     });
+
+    const themeButton = document.getElementById('themeToggle');
+    if (themeButton) {
+        themeButton.addEventListener('click', () => {
+            const nextTheme = document.body.classList.contains('theme-light') ? 'dark' : 'light';
+            setTheme(nextTheme);
+        });
+    }
+
+    document.getElementById('saveItemBtn')?.addEventListener('click', saveItem);
+    document.getElementById('cancelEditBtn')?.addEventListener('click', resetForm);
+    document.getElementById('exportJsonBtn')?.addEventListener('click', exportItemsAsJson);
+    document.getElementById('exportCsvBtn')?.addEventListener('click', exportItemsAsCsv);
+    document.getElementById('importBtn')?.addEventListener('click', () => document.getElementById('importInput').click());
+    document.getElementById('importInput')?.addEventListener('change', (event) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            importItemsFromFile(file);
+            event.target.value = '';
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initDashboardControls();
+    setTheme(localStorage.getItem('theme') || 'dark');
 });

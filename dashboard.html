@@ -9,60 +9,69 @@
 <body>
     <div class="dashboard-container">
         <header class="dashboard-header">
-            <h1>⚔️ PIXEL QUEST VALUES</h1>
+            <h1>Pixel Quest Vault</h1>
             <div class="header-right">
+                <button id="themeToggle" class="btn btn-secondary" type="button">☀️ Light</button>
                 <span id="userInfo"></span>
-                <button onclick="logout()" class="btn-logout">LOGOUT</button>
+                <button onclick="logout()" class="btn btn-logout">Logout</button>
             </div>
         </header>
 
         <div class="container">
             <div id="adminPanel" style="display: none;" class="admin-panel">
-                <h2>~ ADMIN CONTROL PANEL ~</h2>
-                <div class="add-item-form">
-                    <input type="text" id="itemIcon" placeholder="Image URL...">
-                    <input type="text" id="itemName" placeholder="Item Name...">
-                    <input type="number" id="itemPrice" placeholder="Gold Price...">
-                    <input type="number" id="itemCorruptedPages" placeholder="Corrupted Pages...">
-                    <input type="text" id="itemTier" placeholder="Tier...">
+                <div class="panel-heading">
+                    <h2>Admin control</h2>
+                    <p>Create or edit items in the vault.</p>
+                </div>
+                <div class="form-grid">
+                    <input type="hidden" id="editingItemIndex">
+                    <input type="text" id="itemIcon" placeholder="Image URL or emoji">
+                    <input type="text" id="itemName" placeholder="Item name">
+                    <input type="number" id="itemCorruptedPages" placeholder="Corrupted Pages">
+                    <input type="text" id="itemTier" placeholder="Tier">
                     <select id="itemRarity">
-                        <option value="Common">COMMON</option>
-                        <option value="Rare">RARE</option>
-                        <option value="Epic">EPIC</option>
-                        <option value="Legendary">LEGENDARY</option>
+                        <option value="Common">Common</option>
+                        <option value="Rare">Rare</option>
+                        <option value="Epic">Epic</option>
+                        <option value="Legendary">Legendary</option>
                     </select>
-                    <input type="text" id="itemType" placeholder="Type...">
-                    <button onclick="addItem()" class="btn-add">ADD ITEM</button>
+                    <input type="text" id="itemType" placeholder="Type">
+                    <div class="form-actions">
+                        <button id="saveItemBtn" type="button" class="btn btn-primary">Add item</button>
+                        <button id="cancelEditBtn" type="button" class="btn btn-secondary">Cancel</button>
+                    </div>
                 </div>
             </div>
 
-            <div class="search-box">
-                <input 
-                    type="text" 
-                    id="searchInput" 
-                    placeholder="Search items..."
-                    onkeyup="filterTable()"
-                >
+            <div class="toolbar">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search by name, icon or type..." onkeyup="filterTable()">
+                </div>
+                <div class="toolbar-actions">
+                    <button id="importBtn" type="button" class="btn btn-secondary">Import JSON</button>
+                    <button id="exportJsonBtn" type="button" class="btn btn-secondary">Export JSON</button>
+                    <button id="exportCsvBtn" type="button" class="btn btn-secondary">Export CSV</button>
+                </div>
+                <input type="file" id="importInput" accept="application/json" hidden>
             </div>
 
             <table id="pricesTable">
                 <thead>
                     <tr>
-                        <th>ICON</th>
-                        <th><button class="sort-btn" type="button" data-sort="name">ITEM</button></th>
+                        <th>Icon</th>
+                        <th><button class="sort-btn" type="button" data-sort="name">Item</button></th>
                         <th><button class="sort-btn" type="button" data-sort="corruptedPages">CP</button></th>
-                        <th><button class="sort-btn" type="button" data-sort="tier">TIER</button></th>
-                        <th><button class="sort-btn" type="button" data-sort="rarity">RARITY</button></th>
-                        <th><button class="sort-btn" type="button" data-sort="type">TYPE</button></th>
-                        <th id="adminCol" style="display: none;">ACTION</th>
+                        <th><button class="sort-btn" type="button" data-sort="tier">Tier</button></th>
+                        <th><button class="sort-btn" type="button" data-sort="rarity">Rarity</button></th>
+                        <th><button class="sort-btn" type="button" data-sort="type">Type</button></th>
+                        <th id="adminCol" style="display: none;">Action</th>
                     </tr>
                 </thead>
-                <tbody id="tableBody">
-                </tbody>
+                <tbody id="tableBody"></tbody>
             </table>
 
             <footer>
-                <p>Last Update: <span id="lastUpdate"></span></p>
+                <p>Last update: <span id="lastUpdate"></span></p>
             </footer>
         </div>
     </div>
