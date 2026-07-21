@@ -224,15 +224,43 @@ body {
     background: linear-gradient(135deg, var(--success), var(--accent-2));
     color: white;
     border: none;
-    font-weight: 600;
+    font-weight: 700;
+    padding: 12px 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-auth:hover,
-.btn-primary:hover,
-.btn-secondary:hover,
-.btn-table:hover,
-.toggle-btn:hover {
-    transform: translateY(-1px);
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(34, 197, 94, 0.4);
+}
+
+.btn-auth:active,
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: var(--surface-strong);
+    color: var(--text);
+    padding: 12px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.btn-secondary:active {
+    transform: translateY(0);
 }
 
 .btn-auth {
@@ -245,7 +273,6 @@ body {
     background: linear-gradient(135deg, var(--accent), var(--accent-2));
     border: none;
     box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
-    transition: all 0.3s ease;
 }
 
 .btn-auth:hover {
