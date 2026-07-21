@@ -1,5 +1,5 @@
-import { verifyPassword, hashPassword, createToken, getUserFromRequest, cors, json, setAuthCookie, clearAuthCookie, generateCsrfToken, validateCsrfToken, setCsrfCookie } from '../auth.js';
-import { sql, sqlRun } from '../turso.js';
+import { verifyPassword, hashPassword, createToken, getUserFromRequest, cors, json, setAuthCookie, clearAuthCookie, generateCsrfToken, validateCsrfToken, setCsrfCookie } from '../../lib/auth.js';
+import { sql, sqlRun } from '../../lib/turso.js';
 import { randomUUID } from 'crypto';
 
 export default async function handler(req, res) {

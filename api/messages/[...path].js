@@ -1,5 +1,5 @@
-import { sql, sqlRun } from '../turso.js';
-import { getUserFromRequest, cors, json, validateInput } from '../auth.js';
+import { sql, sqlRun } from '../../lib/turso.js';
+import { getUserFromRequest, cors, json, validateInput } from '../../lib/auth.js';
 import { randomUUID } from 'crypto';
 
 export default async function handler(req, res) {
