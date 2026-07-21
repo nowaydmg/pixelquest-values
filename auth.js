@@ -576,11 +576,8 @@ function initDashboard() {
     const adminCol = document.getElementById('adminCol');
     const reportNavBtn = document.getElementById('reportNavBtn');
 
-    if (userRole === 'owner') {
-        if (adminPanel) adminPanel.style.display = 'block';
-    }
-
     if (userRole === 'admin' || userRole === 'owner') {
+        if (adminPanel) adminPanel.style.display = 'block';
         if (adminActionsPanel) adminActionsPanel.style.display = 'block';
         if (adminCol) adminCol.style.display = 'table-cell';
     }
