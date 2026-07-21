@@ -326,13 +326,67 @@ body {
     grid-column: 1 / -1;
 }
 
-.toolbar {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    align-items: center;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
+    .role-list {
+        margin-top: 12px;
+        display: grid;
+        gap: 8px;
+        grid-column: 1 / -1;
+    }
+
+    .role-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+    }
+
+    .role-badge {
+        background: rgba(56, 189, 248, 0.14);
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        color: var(--text);
+        text-transform: capitalize;
+    }
+
+    .role-summary {
+        grid-column: 1 / -1;
+        padding: 14px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-size: 0.9rem;
+    }
+
+    .ban-row,
+    .warn-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+    }
+
+    .btn-danger {
+        background: rgba(239, 68, 68, 0.18);
+        color: var(--text);
+        border: 1px solid transparent;
+    }
+
+    .btn-danger:hover {
+        background: rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-small {
+        padding: 6px 10px;
+        font-size: 0.72rem;
+    }
 }
 
 .search-box {
@@ -427,6 +481,25 @@ tbody tr:hover {
     background: rgba(255, 255, 255, 0.08);
 }
 
+.image-preview {
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px dashed var(--border);
+    overflow: hidden;
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 12px;
+    object-fit: contain;
+}
+
 .rarity-common { color: #94a3b8; }
 .rarity-rare { color: #60a5fa; }
 .rarity-epic { color: #a78bfa; }
@@ -444,6 +517,94 @@ footer {
     margin-top: 10px;
 }
 
+.trade-panel {
+    margin-top: 20px;
+    padding: 18px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(56, 189, 248, 0.14));
+    border: 1px solid var(--border);
+}
+
+.trade-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.trade-card {
+    padding: 14px;
+    border-radius: 16px;
+    background: var(--surface-strong);
+    border: 1px solid var(--border);
+}
+
+.trade-card h3 {
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+.trade-offers-list {
+    display: grid;
+    gap: 10px;
+}
+
+.trade-offer {
+    padding: 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border);
+}
+
+.trade-offer-header,
+.trade-offer-meta,
+.trade-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.trade-offer-meta {
+    color: var(--muted);
+    font-size: 0.72rem;
+}
+
+.trade-empty {
+    color: var(--muted);
+    padding: 8px 0;
+}
+
+.btn-small {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+}
+
+.dm-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.dm-message {
+    padding: 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+}
+
+.dm-message.mine {
+    background: rgba(56, 189, 248, 0.16);
+}
+
+.dm-message-meta,
+.dm-message-time {
+    color: var(--muted);
+    font-size: 0.7rem;
+    margin-bottom: 4px;
+}
+
 @keyframes fadeInUp {
     from {
         opacity: 0;
@@ -457,6 +618,10 @@ footer {
 
 @media (max-width: 900px) {
     .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .trade-grid {
         grid-template-columns: 1fr;
     }
 }

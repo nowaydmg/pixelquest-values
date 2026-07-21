@@ -17,6 +17,251 @@ const defaultItems = [
 
 let currentSort = { key: 'corruptedPages', direction: 'desc' };
 let editingIndex = null;
+let uploadedItemImage = null;
+
+function getCurrentUser() {
+    return localStorage.getItem('currentUser') || 'guest';
+}
+
+function getRegisteredUsers() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
+        return Object.keys(stored).filter(Boolean);
+    } catch (error) {
+        return [];
+    }
+}
+
+function sanitizeText(input) {
+    return String(input)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function isSafeString(input) {
+    const value = String(input);
+    const blocked = /<script|javascript:|onerror|onload|eval\(|Function\(/i;
+    return !blocked.test(value);
+}
+
+function getActionLog() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('actionLog') || '[]');
+        return Array.isArray(stored) ? stored : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function saveActionLog(log) {
+    localStorage.setItem('actionLog', JSON.stringify(log));
+}
+
+function recordAction(action) {
+    const now = Date.now();
+    const log = getActionLog().filter((entry) => now - entry.timestamp < 60_000);
+    log.push({ action, timestamp: now, user: getCurrentUser() });
+    saveActionLog(log);
+}
+
+function canPerformAction(action, limit = 6, windowMs = 60_000) {
+    const now = Date.now();
+    const recent = getActionLog().filter((entry) => entry.action === action && now - entry.timestamp < windowMs);
+    return recent.length < limit;
+}
+
+function getNotifications() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('notifications') || '[]');
+        return Array.isArray(stored) ? stored : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function saveNotifications(notes) {
+    localStorage.setItem('notifications', JSON.stringify(notes));
+}
+
+function addNotification(recipient, text) {
+    const notifications = getNotifications();
+    notifications.push({
+        id: Date.now(),
+        to: recipient,
+        text: sanitizeText(text),
+        createdAt: new Date().toISOString(),
+        seen: false
+    });
+    saveNotifications(notifications);
+}
+
+function getReports() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('reports') || '[]');
+        return Array.isArray(stored) ? stored : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function saveReports(reports) {
+    localStorage.setItem('reports', JSON.stringify(reports));
+}
+
+function addReport(target, reason, reporter) {
+    const reports = getReports();
+    reports.push({
+        id: Date.now(),
+        target: sanitizeText(target),
+        reason: sanitizeText(reason),
+        reporter: sanitizeText(reporter),
+        createdAt: new Date().toISOString(),
+        status: 'pending'
+    });
+    saveReports(reports);
+}
+
+function getNotificationsForUser(user) {
+    return getNotifications().filter((note) => note.to === user || note.to === 'all');
+}
+
+function clearNotification(id) {
+    const notifications = getNotifications().filter((note) => note.id !== id);
+    saveNotifications(notifications);
+    renderNotifications();
+}
+
+function getPendingReports() {
+    return getReports().filter((report) => report.status === 'pending');
+}
+
+function updateReportStatus(id, status) {
+    const reports = getReports().map((report) => (report.id === id ? { ...report, status } : report));
+    saveReports(reports);
+}
+
+function renderNotifications() {
+    const currentUser = getCurrentUser();
+    const notificationList = document.getElementById('notificationList');
+    if (!notificationList) return;
+
+    const notifications = getNotificationsForUser(currentUser);
+    notificationList.innerHTML = notifications.length
+        ? notifications.map((note) => `
+            <div class="trade-offer notification-card ${note.seen ? 'seen' : ''}">
+                <div class="trade-offer-header">
+                    <strong>Notification</strong>
+                    <span>${new Date(note.createdAt).toLocaleTimeString('pl-PL')}</span>
+                </div>
+                <div>${note.text}</div>
+                <div class="trade-actions">
+                    <button class="btn btn-secondary btn-small" type="button" onclick="clearNotification(${note.id})">Dismiss</button>
+                </div>
+            </div>
+        `).join('')
+        : '<div class="trade-empty">No notifications.</div>';
+}
+
+function renderReportTargets() {
+    const currentUser = getCurrentUser();
+    const reportTargetSelect = document.getElementById('reportTargetSelect');
+    if (!reportTargetSelect) return;
+
+    const users = getRegisteredUsers().filter((user) => user !== currentUser);
+    reportTargetSelect.innerHTML = users.length
+        ? users.map((user) => `<option value="${user}">${user}</option>`).join('')
+        : '<option value="">No players available</option>';
+}
+
+function submitReport() {
+    const currentUser = getCurrentUser();
+    const target = document.getElementById('reportTargetSelect')?.value;
+    const reason = document.getElementById('reportReason')?.value.trim();
+
+    if (!target || !reason) {
+        alert('> ERROR: Select a player and enter a reason.');
+        return;
+    }
+
+    if (!isSafeString(target) || !isSafeString(reason)) {
+        alert('> ERROR: Unsafe characters detected.');
+        return;
+    }
+
+    if (!canPerformAction('submitReport', 4, 60_000)) {
+        alert('> WAIT: Too many reports recently.');
+        return;
+    }
+
+    recordAction('submitReport');
+    addReport(target, reason, currentUser);
+    addNotification('all', `${currentUser} submitted a report against ${target}.`);
+    document.getElementById('reportReason').value = '';
+    renderReportTargets();
+    alert('Report submitted successfully.');
+}
+
+function renderModeratorReports() {
+    const reportsList = document.getElementById('moderatorReportsList');
+    if (!reportsList) return;
+
+    const reports = getPendingReports();
+    reportsList.innerHTML = reports.length
+        ? reports.map((report) => `
+            <div class="trade-offer report-card">
+                <div class="trade-offer-header">
+                    <strong>Report: ${sanitizeText(report.target)}</strong>
+                    <span>${new Date(report.createdAt).toLocaleTimeString('pl-PL')}</span>
+                </div>
+                <div>${sanitizeText(report.reason)}</div>
+                <div class="trade-offer-meta">Reporter: ${sanitizeText(report.reporter)}</div>
+                <div class="trade-actions">
+                    <button class="btn btn-primary btn-small" type="button" onclick="handleReportOutcome(${report.id}, 'approved')">Approve</button>
+                    <button class="btn btn-secondary btn-small" type="button" onclick="handleReportOutcome(${report.id}, 'rejected')">Reject</button>
+                </div>
+            </div>
+        `).join('')
+        : '<div class="trade-empty">No pending reports.</div>';
+}
+
+function handleReportOutcome(id, status) {
+    updateReportStatus(id, status);
+    const report = getReports().find((reportItem) => reportItem.id === id);
+    if (report) {
+        addNotification(report.reporter, `Your report against ${report.target} was ${status}.`);
+        addNotification('all', `Report against ${report.target} was ${status}.`);
+    }
+    renderModeratorReports();
+}
+
+function getTradeOffers() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('tradeOffers') || '[]');
+        return Array.isArray(stored) ? stored : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function saveTradeOffers(offers) {
+    localStorage.setItem('tradeOffers', JSON.stringify(offers));
+}
+
+function getDirectMessages() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('directMessages') || '[]');
+        return Array.isArray(stored) ? stored : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function saveDirectMessages(messages) {
+    localStorage.setItem('directMessages', JSON.stringify(messages));
+}
 
 function getItems() {
     try {
@@ -35,6 +280,10 @@ function loadTableData(userRole) {
     const items = getItems();
     const sortedItems = sortItems(items, currentSort.key, currentSort.direction);
     renderTable(sortedItems, userRole);
+    renderTradePlace();
+    renderNotifications();
+    renderReportTargets();
+    renderModeratorReports();
     updateLastUpdate();
 }
 
@@ -122,11 +371,14 @@ function renderTable(items, userRole) {
 
 function resetForm() {
     document.getElementById('itemIcon').value = '';
+    document.getElementById('itemImageUpload').value = '';
     document.getElementById('itemName').value = '';
     document.getElementById('itemCorruptedPages').value = '';
     document.getElementById('itemTier').value = '';
     document.getElementById('itemType').value = '';
     document.getElementById('itemRarity').value = 'Common';
+    document.getElementById('itemImagePreview').innerHTML = '';
+    uploadedItemImage = null;
     document.getElementById('editingItemIndex').value = '';
     editingIndex = null;
     document.getElementById('saveItemBtn').textContent = 'Add item';
@@ -146,7 +398,14 @@ function saveItem() {
     }
 
     const items = getItems();
-    const itemPayload = { icon, name, corruptedPages: corruptedPages ? parseInt(corruptedPages, 10) : undefined, tier, rarity, type };
+    const itemPayload = {
+        icon: uploadedItemImage || icon,
+        name,
+        corruptedPages: corruptedPages ? parseInt(corruptedPages, 10) : undefined,
+        tier,
+        rarity,
+        type
+    };
 
     if (editingIndex !== null) {
         items[editingIndex] = { ...items[editingIndex], ...itemPayload };
@@ -166,12 +425,15 @@ function startEditItem(index) {
 
     editingIndex = index;
     document.getElementById('editingItemIndex').value = index;
-    document.getElementById('itemIcon').value = item.icon || '';
+    document.getElementById('itemIcon').value = item.icon && !item.icon.startsWith('data:') ? item.icon : '';
     document.getElementById('itemName').value = item.name || '';
     document.getElementById('itemCorruptedPages').value = item.corruptedPages || '';
     document.getElementById('itemTier').value = item.tier || '';
     document.getElementById('itemType').value = item.type || '';
     document.getElementById('itemRarity').value = item.rarity || 'Common';
+    document.getElementById('itemImageUpload').value = '';
+    uploadedItemImage = item.icon && item.icon.startsWith('data:') ? item.icon : null;
+    document.getElementById('itemImagePreview').innerHTML = uploadedItemImage ? `<img src="${uploadedItemImage}" alt="Preview">` : '';
     document.getElementById('saveItemBtn').textContent = 'Save changes';
 }
 
@@ -199,6 +461,217 @@ function filterTable() {
     });
 }
 
+function renderTradePlace() {
+    const items = getItems();
+    const tradeItemSelect = document.getElementById('tradeItemSelect');
+    const dmRecipient = document.getElementById('dmRecipient');
+    const offerList = document.getElementById('tradeOffersList');
+    const dmList = document.getElementById('dmMessagesList');
+
+    if (!tradeItemSelect || !dmRecipient || !offerList || !dmList) {
+        return;
+    }
+
+    const currentUser = getCurrentUser();
+    tradeItemSelect.innerHTML = items.length
+        ? items.map((item) => `<option value="${item.name}">${item.name}</option>`).join('')
+        : '<option value="">No items yet</option>';
+
+    const users = getRegisteredUsers().filter((user) => user !== currentUser);
+    dmRecipient.innerHTML = users.length
+        ? users.map((user) => `<option value="${user}">${user}</option>`).join('')
+        : '<option value="">No available users</option>';
+
+    const offers = getTradeOffers().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    if (!offers.length) {
+        offerList.innerHTML = '<div class="trade-empty">No active offers yet.</div>';
+    } else {
+        offerList.innerHTML = offers.map((offer) => {
+            const itemName = sanitizeText(offer.itemName);
+            const message = sanitizeText(offer.message || 'No extra note.');
+            const seller = sanitizeText(offer.seller);
+            const isOwner = currentUser === offer.seller;
+            const actionButtons = isOwner
+                ? '<span class="trade-tag">Your offer</span>'
+                : `
+                    <button class="btn btn-primary btn-small" type="button" onclick="acceptTradeOffer(${offer.id})">Accept</button>
+                    <button class="btn btn-secondary btn-small" type="button" onclick="rejectTradeOffer(${offer.id})">Reject</button>
+                    <button class="btn btn-secondary btn-small" type="button" onclick="startDm('${seller.replace(/'/g, "\\'")}')">DM</button>
+                `;
+
+            return `
+                <div class="trade-offer">
+                    <div class="trade-offer-header">
+                        <strong>${itemName}</strong>
+                        <span>${sanitizeText(offer.price || 'Open to trade')}</span>
+                    </div>
+                    <p>${message}</p>
+                    <div class="trade-offer-meta">
+                        <span>Seller: ${seller}</span>
+                        <span>${new Date(offer.createdAt).toLocaleString('pl-PL')}</span>
+                    </div>
+                    <div class="trade-actions">${actionButtons}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    const messages = getDirectMessages();
+    const recipient = dmRecipient.value;
+    const visibleMessages = messages.filter((message) => {
+        const isRelevant = (message.from === currentUser && message.to === recipient) || (message.from === recipient && message.to === currentUser);
+        return recipient ? isRelevant : false;
+    });
+
+    if (!recipient) {
+        dmList.innerHTML = '<div class="trade-empty">Choose a player to see messages.</div>';
+        return;
+    }
+
+    if (!visibleMessages.length) {
+        dmList.innerHTML = '<div class="trade-empty">No messages yet. Start the conversation.</div>';
+        return;
+    }
+
+    dmList.innerHTML = visibleMessages.map((message) => `
+        <div class="dm-message ${message.from === currentUser ? 'mine' : ''}">
+            <div class="dm-message-meta">${message.from === currentUser ? 'You' : sanitizeText(message.from)}</div>
+            <div>${sanitizeText(message.text)}</div>
+            <div class="dm-message-time">${new Date(message.createdAt).toLocaleString('pl-PL')}</div>
+        </div>
+    `).join('');
+}
+
+function createTradeOffer() {
+    const currentUser = getCurrentUser();
+    const itemName = document.getElementById('tradeItemSelect')?.value;
+    const price = document.getElementById('tradePrice')?.value.trim();
+    const message = document.getElementById('tradeMessage')?.value.trim();
+
+    if (!itemName) {
+        alert('> ERROR: Select an item before listing it.');
+        return;
+    }
+
+    if (!isSafeString(itemName) || !isSafeString(message) || !isSafeString(price)) {
+        alert('> ERROR: Unsafe characters detected.');
+        return;
+    }
+
+    if (!canPerformAction('tradeOffer', 5, 60_000)) {
+        alert('> WAIT: Too many trade actions recently. Please wait a moment.');
+        return;
+    }
+
+    recordAction('tradeOffer');
+    const offers = getTradeOffers();
+    offers.push({
+        id: Date.now(),
+        seller: currentUser,
+        itemName,
+        price,
+        message,
+        createdAt: new Date().toISOString()
+    });
+
+    saveTradeOffers(offers);
+    document.getElementById('tradePrice').value = '';
+    document.getElementById('tradeMessage').value = '';
+    addNotification('all', `${currentUser} posted a new trade offer for ${itemName}.`);
+    renderTradePlace();
+}
+
+function acceptTradeOffer(id) {
+    const currentUser = getCurrentUser();
+    if (!canPerformAction('tradeResponse', 4, 60_000)) {
+        alert('> WAIT: Too many offer responses.');
+        return;
+    }
+    recordAction('tradeResponse');
+
+    const offers = getTradeOffers();
+    const offer = offers.find((offer) => offer.id === id);
+    if (!offer) {
+        alert('> ERROR: Offer not found.');
+        return;
+    }
+
+    const updatedOffers = offers.filter((offerItem) => offerItem.id !== id);
+    saveTradeOffers(updatedOffers);
+    addNotification(offer.seller, `${currentUser} accepted your offer for ${offer.itemName}.`);
+    addNotification(currentUser, `You accepted ${offer.seller}'s offer for ${offer.itemName}.`);
+    renderTradePlace();
+}
+
+function rejectTradeOffer(id) {
+    const currentUser = getCurrentUser();
+    if (!canPerformAction('tradeResponse', 6, 60_000)) {
+        alert('> WAIT: Too many offer responses.');
+        return;
+    }
+    recordAction('tradeResponse');
+
+    const offers = getTradeOffers();
+    const offer = offers.find((offer) => offer.id === id);
+    if (!offer) {
+        alert('> ERROR: Offer not found.');
+        return;
+    }
+
+    const updatedOffers = offers.filter((offerItem) => offerItem.id !== id);
+    saveTradeOffers(updatedOffers);
+    addNotification(offer.seller, `${currentUser} rejected your offer for ${offer.itemName}.`);
+    renderTradePlace();
+}
+
+function startDm(recipient) {
+    const dmRecipient = document.getElementById('dmRecipient');
+    if (dmRecipient) {
+        dmRecipient.value = recipient;
+        renderTradePlace();
+        const dmMessage = document.getElementById('dmMessage');
+        if (dmMessage) {
+            dmMessage.focus();
+        }
+    }
+}
+
+function sendDirectMessage() {
+    const currentUser = getCurrentUser();
+    const recipient = document.getElementById('dmRecipient')?.value;
+    const text = document.getElementById('dmMessage')?.value.trim();
+
+    if (!recipient || !text) {
+        alert('> ERROR: Choose a player and write a message.');
+        return;
+    }
+
+    if (!isSafeString(text) || !isSafeString(recipient)) {
+        alert('> ERROR: Unsafe content detected.');
+        return;
+    }
+
+    if (!canPerformAction('directMessage', 8, 60_000)) {
+        alert('> WAIT: Too many messages recently.');
+        return;
+    }
+
+    recordAction('directMessage');
+    const messages = getDirectMessages();
+    messages.push({
+        id: Date.now(),
+        from: currentUser,
+        to: recipient,
+        text: sanitizeText(text),
+        createdAt: new Date().toISOString()
+    });
+
+    saveDirectMessages(messages);
+    addNotification(recipient, `New DM from ${currentUser}.`);
+    document.getElementById('dmMessage').value = '';
+    renderTradePlace();
+}
+
 function updateLastUpdate() {
     const now = new Date();
     const dateStr = now.toLocaleDateString('pl-PL') + ' ' + now.toLocaleTimeString('pl-PL');
@@ -215,52 +688,22 @@ function setTheme(theme) {
     }
 }
 
-function exportItemsAsJson() {
-    const items = getItems();
-    const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'pixel-quest-items.json';
-    link.click();
-    URL.revokeObjectURL(link.href);
-}
+function handleItemImageUpload(event) {
+    const file = event.target.files?.[0];
+    const preview = document.getElementById('itemImagePreview');
 
-function exportItemsAsCsv() {
-    const items = getItems();
-    const rows = [
-        ['name', 'icon', 'corruptedPages', 'tier', 'rarity', 'type'].join(','),
-        ...items.map((item) => [
-            `"${(item.name || '').replace(/"/g, '""')}"`,
-            `"${(item.icon || '').replace(/"/g, '""')}"`,
-            item.corruptedPages || '',
-            item.tier || '',
-            item.rarity || '',
-            item.type || ''
-        ].join(','))
-    ];
+    if (!file || !preview) {
+        uploadedItemImage = null;
+        if (preview) preview.innerHTML = '';
+        return;
+    }
 
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'pixel-quest-items.csv';
-    link.click();
-    URL.revokeObjectURL(link.href);
-}
-
-function importItemsFromFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-        try {
-            const data = JSON.parse(reader.result);
-            if (Array.isArray(data)) {
-                saveItems(data);
-                loadTableData('admin');
-            }
-        } catch (error) {
-            alert('> ERROR: Invalid JSON file');
-        }
+        uploadedItemImage = reader.result;
+        preview.innerHTML = `<img src="${uploadedItemImage}" alt="Preview">`;
     };
-    reader.readAsText(file);
+    reader.readAsDataURL(file);
 }
 
 function initDashboardControls() {
@@ -278,16 +721,11 @@ function initDashboardControls() {
 
     document.getElementById('saveItemBtn')?.addEventListener('click', saveItem);
     document.getElementById('cancelEditBtn')?.addEventListener('click', resetForm);
-    document.getElementById('exportJsonBtn')?.addEventListener('click', exportItemsAsJson);
-    document.getElementById('exportCsvBtn')?.addEventListener('click', exportItemsAsCsv);
-    document.getElementById('importBtn')?.addEventListener('click', () => document.getElementById('importInput').click());
-    document.getElementById('importInput')?.addEventListener('change', (event) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            importItemsFromFile(file);
-            event.target.value = '';
-        }
-    });
+    document.getElementById('itemImageUpload')?.addEventListener('change', handleItemImageUpload);
+    document.getElementById('createTradeOfferBtn')?.addEventListener('click', createTradeOffer);
+    document.getElementById('sendDmBtn')?.addEventListener('click', sendDirectMessage);
+    document.getElementById('dmRecipient')?.addEventListener('change', renderTradePlace);
+    document.getElementById('submitReportBtn')?.addEventListener('click', submitReport);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
