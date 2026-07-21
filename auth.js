@@ -1,20 +1,43 @@
-// Auth System — uses backend API (JWT)
+// Auth System — uses backend API with HTTP-only cookies and CSRF protection (no localStorage)
 let currentUser = null;
-let authToken = null;
+let csrfToken = null;
 
 function getAuthHeaders() {
-    const token = authToken || localStorage.getItem('authToken');
-    return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+    return { 'Content-Type': 'application/json' };
 }
 
-function api(method, path, body) {
-    const opts = { method, headers: getAuthHeaders() };
-    if (body) opts.body = JSON.stringify(body);
-    return fetch(path, opts).then(r => r.json());
+async function getCsrfToken() {
+    try {
+        const res = await fetch('/api/auth/csrf', { credentials: 'include' });
+        const data = await res.json();
+        csrfToken = data.csrfToken;
+        return csrfToken;
+    } catch (err) {
+        console.error('Failed to get CSRF token:', err);
+        return null;
+    }
+}
+
+async function api(method, path, body) {
+    const opts = { method, headers: getAuthHeaders(), credentials: 'include' };
+    if (body) {
+        opts.body = JSON.stringify({ ...body, csrfToken });
+    }
+    const res = await fetch(path, opts);
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    if (data.csrfToken) {
+        csrfToken = data.csrfToken;
+    }
+    return data;
 }
 
 async function signUp(username, password) {
     try {
+        await getCsrfToken();
         const data = await api('POST', '/api/auth/register', { username, password });
         if (data.error) return { success: false, message: `> ERROR: ${data.error}` };
         return { success: true, message: `> SUCCESS: Welcome, ${username}! You can log in now.` };
@@ -25,19 +48,12 @@ async function signUp(username, password) {
 
 async function signIn(username, password) {
     try {
+        await getCsrfToken();
         const data = await api('POST', '/api/auth/login', { username, password });
         if (data.error) return { success: false, message: `> ERROR: ${data.error}` };
         if (data.user?.banned) return { success: false, message: '> ACCESS DENIED: Account is banned.' };
 
-        authToken = data.token;
         currentUser = data.user;
-
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('currentUser', data.user.username);
-        localStorage.setItem('userRole', data.user.role);
-        localStorage.setItem('currentUserId', data.user.id);
-        localStorage.setItem('loginTime', String(Date.now()));
-
         return { success: true, message: `> SUCCESS: Welcome back, ${data.user.username}!` };
     } catch (err) {
         return { success: false, message: `> ERROR: ${err.message}` };
@@ -45,26 +61,25 @@ async function signIn(username, password) {
 }
 
 async function signOut() {
+    try {
+        await api('POST', '/api/auth/logout');
+    } catch (err) {
+        console.error('Logout error:', err);
+    }
     currentUser = null;
-    authToken = null;
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('currentUserId');
-    localStorage.removeItem('loginTime');
     window.location.href = 'index.html';
 }
 
 function getCurrentUser() {
-    return currentUser?.username || localStorage.getItem('currentUser');
+    return currentUser?.username;
 }
 
 function getCurrentUserId() {
-    return currentUser?.id || localStorage.getItem('currentUserId');
+    return currentUser?.id;
 }
 
 function getUserRole() {
-    return currentUser?.role || localStorage.getItem('userRole') || 'user';
+    return currentUser?.role || 'user';
 }
 
 async function registerUser(username, password, confirmPassword) {
@@ -128,11 +143,7 @@ function setAuthMode(mode) {
 function handleEnter(event) { if (event.key === 'Enter') login(); }
 
 async function checkAuth() {
-    const token = localStorage.getItem('authToken');
-    if (!token) return;
-
     if (window.location.pathname.includes('dashboard.html')) {
-        authToken = token;
         try {
             const data = await api('GET', '/api/auth/session');
             if (data.error || !data.user) { signOut(); return; }
@@ -141,8 +152,16 @@ async function checkAuth() {
         } catch {
             signOut();
         }
-    } else if (token) {
-        window.location.href = 'dashboard.html';
+    } else {
+        // On login page, check if already authenticated
+        try {
+            const data = await api('GET', '/api/auth/session');
+            if (data.user && !data.error) {
+                window.location.href = 'dashboard.html';
+            }
+        } catch {
+            // Not authenticated, stay on login page
+        }
     }
 }
 

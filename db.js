@@ -1,19 +1,39 @@
-// Data layer — all DB reads/writes via backend API
+// Data layer — all DB reads/writes via backend API with HTTP-only cookies and CSRF protection
+
+let csrfToken = null;
+
+async function getCsrfToken() {
+    try {
+        const res = await fetch('/api/auth/csrf', { credentials: 'include' });
+        const data = await res.json();
+        csrfToken = data.csrfToken;
+        return csrfToken;
+    } catch (err) {
+        console.error('Failed to get CSRF token:', err);
+        return null;
+    }
+}
 
 function apiHeaders() {
-    const token = localStorage.getItem('authToken');
-    return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+    return { 'Content-Type': 'application/json' };
 }
 
 async function apiFetch(method, path, body) {
-    const opts = { method, headers: apiHeaders() };
-    if (body) opts.body = JSON.stringify(body);
+    const opts = { method, headers: apiHeaders(), credentials: 'include' };
+    if (body) {
+        if (!csrfToken) await getCsrfToken();
+        opts.body = JSON.stringify({ ...body, csrfToken });
+    }
     const res = await fetch(path, opts);
     if (!res.ok) {
         const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
         throw new Error(err.error || `HTTP ${res.status}`);
     }
-    return res.json();
+    const data = await res.json();
+    if (data.csrfToken) {
+        csrfToken = data.csrfToken;
+    }
+    return data;
 }
 
 // --- Items ---
@@ -29,12 +49,12 @@ async function addItem(item) {
 }
 
 async function updateItem(id, updates) {
-    try { return await apiFetch('PUT', `/api/items/${id}`, updates); }
+    try { return await apiFetch('PUT', `/api/items?id=${id}`, updates); }
     catch { return null; }
 }
 
 async function deleteItemById(id) {
-    try { return await apiFetch('DELETE', `/api/items/${id}`); }
+    try { return await apiFetch('DELETE', `/api/items?id=${id}`); }
     catch { return false; }
 }
 
@@ -87,17 +107,17 @@ async function addMessage(message) {
 // --- Notifications ---
 
 async function getNotifications() {
-    try { return await apiFetch('GET', '/api/notifications'); }
+    try { return await apiFetch('GET', '/api/messages/notifications'); }
     catch { return []; }
 }
 
 async function addNotification(recipient, text) {
-    try { return await apiFetch('POST', '/api/notifications', { recipient, text }); }
+    try { return await apiFetch('POST', '/api/messages/notifications', { recipient, text }); }
     catch { return null; }
 }
 
 async function clearNotification(id) {
-    try { return await apiFetch('PUT', '/api/notifications', { id }); }
+    try { return await apiFetch('PUT', '/api/messages/notifications', { id }); }
     catch { return false; }
 }
 
@@ -201,17 +221,17 @@ async function unbanUser(username) {
 // --- Banned IPs ---
 
 async function getBannedIps() {
-    try { return await apiFetch('GET', '/api/banned-ips'); }
+    try { return await apiFetch('GET', '/api/users/banned-ips'); }
     catch { return []; }
 }
 
 async function addBannedIp(ip) {
-    try { return await apiFetch('POST', '/api/banned-ips', { ip }); }
+    try { return await apiFetch('POST', '/api/users/banned-ips', { ip }); }
     catch { return false; }
 }
 
 async function removeBannedIp(ip) {
-    try { return await apiFetch('DELETE', '/api/banned-ips', { ip }); }
+    try { return await apiFetch('DELETE', '/api/users/banned-ips', { ip }); }
     catch { return false; }
 }
 
