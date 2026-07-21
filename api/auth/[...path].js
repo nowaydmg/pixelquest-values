@@ -1,5 +1,5 @@
-import { verifyPassword, hashPassword, createToken, getUserFromRequest, cors, json, setAuthCookie, clearAuthCookie, generateCsrfToken, validateCsrfToken, setCsrfCookie } from '../lib/auth.js';
-import { sql, sqlRun } from '../lib/turso.js';
+import { verifyPassword, hashPassword, createToken, getUserFromRequest, cors, json, setAuthCookie, clearAuthCookie, generateCsrfToken, validateCsrfToken, setCsrfCookie } from '../../lib/auth.js';
+import { sql, sqlRun } from '../../lib/turso.js';
 import { randomUUID } from 'crypto';
 
 export default async function handler(req, res) {
@@ -9,14 +9,12 @@ export default async function handler(req, res) {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const path = url.pathname.replace('/api/auth', '');
 
-    // GET /api/auth/csrf (get CSRF token)
     if (path === '/csrf' && req.method === 'GET') {
         const csrfToken = generateCsrfToken();
         setCsrfCookie(res, csrfToken);
         return json(res, 200, { csrfToken });
     }
 
-    // POST /api/auth/login
     if (path === '/login' && req.method === 'POST') {
         const { username, password, csrfToken } = req.body || {};
         if (!username || !password) return json(res, 400, { error: 'Username and password required' });
@@ -29,7 +27,6 @@ export default async function handler(req, res) {
 
             const valid = await verifyPassword(password.trim(), user.password_hash);
             if (!valid) return json(res, 401, { error: 'Invalid credentials' });
-
             if (user.banned) return json(res, 403, { error: 'Account is banned' });
 
             const token = await createToken({ id: user.id, username: user.username, role: user.role });
@@ -55,7 +52,6 @@ export default async function handler(req, res) {
         }
     }
 
-    // POST /api/auth/register
     if (path === '/register' && req.method === 'POST') {
         const { username, password, csrfToken } = req.body || {};
         if (!username || !password) return json(res, 400, { error: 'Username and password required' });
@@ -72,38 +68,28 @@ export default async function handler(req, res) {
             const id = randomUUID();
             const hash = await hashPassword(cleanPassword);
             const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
-
             const ownerCount = await sql('SELECT COUNT(*) as cnt FROM user_profiles WHERE role = ?', 'owner');
             const role = ownerCount[0]?.cnt === 0 ? 'owner' : 'user';
 
-            await sqlRun(
-                'INSERT INTO user_profiles (id, username, password_hash, role, ip) VALUES (?, ?, ?, ?, ?)',
-                id, cleanUsername, hash, role, ip
-            );
+            await sqlRun('INSERT INTO user_profiles (id, username, password_hash, role, ip) VALUES (?, ?, ?, ?, ?)', id, cleanUsername, hash, role, ip);
 
             const token = await createToken({ id, username: cleanUsername, role });
             const newCsrfToken = generateCsrfToken();
             setAuthCookie(res, token);
             setCsrfCookie(res, newCsrfToken);
-            return json(res, 201, {
-                success: true,
-                csrfToken: newCsrfToken,
-                user: { id, username: cleanUsername, role }
-            });
+            return json(res, 201, { success: true, csrfToken: newCsrfToken, user: { id, username: cleanUsername, role } });
         } catch (err) {
             console.error('Register error:', err);
             return json(res, 500, { error: 'Registration failed' });
         }
     }
 
-    // GET /api/auth/session
     if (path === '/session' && req.method === 'GET') {
         const user = await getUserFromRequest(req);
         if (!user) return json(res, 401, { error: 'Not authenticated' });
 
         const newCsrfToken = generateCsrfToken();
         setCsrfCookie(res, newCsrfToken);
-
         return json(res, 200, {
             csrfToken: newCsrfToken,
             user: {
@@ -118,7 +104,6 @@ export default async function handler(req, res) {
         });
     }
 
-    // POST /api/auth/logout
     if (path === '/logout' && req.method === 'POST') {
         clearAuthCookie(res);
         return json(res, 200, { success: true });
