@@ -365,11 +365,20 @@ function renderLeaderboard() {
             const rank = index + 1;
             const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
             const stars = '★'.repeat(Math.round(parseFloat(entry.average)));
+            const avatar = getUserAvatar(entry.username);
+            const achievements = getAchievements()[entry.username]?.length || 0;
             return `
                 <div class="leaderboard-item">
                     <div class="leaderboard-rank ${rankClass}">${rank}</div>
+                    <div class="leaderboard-avatar" style="background: ${avatar.background};">
+                        ${avatar.initial}
+                    </div>
                     <div class="leaderboard-player">
                         <span class="leaderboard-name">${sanitizeText(entry.username)}</span>
+                        <div class="leaderboard-stats">
+                            <span class="leaderboard-achievements">🏆 ${achievements}</span>
+                            <span class="leaderboard-trades">📊 ${entry.count} trades</span>
+                        </div>
                     </div>
                     <div class="leaderboard-rating">
                         <span class="leaderboard-stars">${stars}</span>
@@ -381,6 +390,139 @@ function renderLeaderboard() {
         }).join('')
         : '<div class="trade-empty">No ratings yet. Complete trades to get rated!</div>';
 }
+
+function getUserAvatar(username) {
+    const colors = ['#8b5cf6', '#3b82f6', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#06b6d4'];
+    const hash = username.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0);
+    const color = colors[Math.abs(hash) % colors.length];
+    const initial = username.charAt(0).toUpperCase();
+    return {
+        background: color,
+        initial: initial
+    };
+}
+
+function getTransactionHistory() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+        return Array.isArray(stored) ? stored : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function saveTransactionHistory(history) {
+    localStorage.setItem('transactionHistory', JSON.stringify(history));
+}
+
+function addTransaction(offerId, buyer, seller, item, price) {
+    const history = getTransactionHistory();
+    history.push({
+        id: Date.now(),
+        offerId,
+        buyer,
+        seller,
+        item,
+        price,
+        createdAt: new Date().toISOString(),
+        rating: null
+    });
+    saveTransactionHistory(history);
+}
+
+function rateTransaction(transactionId, rating, comment) {
+    const history = getTransactionHistory();
+    const transaction = history.find(t => t.id === transactionId);
+    if (transaction) {
+        transaction.rating = rating;
+        transaction.comment = comment;
+        saveTransactionHistory(history);
+        
+        // Update user ratings
+        const ratings = getPlayerRatings();
+        const targetUser = transaction.seller;
+        if (!ratings[targetUser]) {
+            ratings[targetUser] = { total: 0, count: 0 };
+        }
+        ratings[targetUser].total += rating;
+        ratings[targetUser].count += 1;
+        savePlayerRatings(ratings);
+        
+        showToast('Success', 'Rating submitted!', 'success');
+    }
+}
+
+function getWatchlist() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('watchlist') || '{}');
+        return stored;
+    } catch (error) {
+        return {};
+    }
+}
+
+function saveWatchlist(watchlist) {
+    localStorage.setItem('watchlist', JSON.stringify(watchlist));
+}
+
+function toggleWatchlist(username, itemName) {
+    const watchlist = getWatchlist();
+    if (!watchlist[username]) {
+        watchlist[username] = [];
+    }
+    const index = watchlist[username].indexOf(itemName);
+    if (index > -1) {
+        watchlist[username].splice(index, 1);
+        showToast('Removed', `${itemName} removed from watchlist`, 'success');
+    } else {
+        watchlist[username].push(itemName);
+        showToast('Added', `${itemName} added to watchlist`, 'success');
+    }
+    saveWatchlist(watchlist);
+}
+
+function isWatched(username, itemName) {
+    const watchlist = getWatchlist();
+    return watchlist[username]?.includes(itemName) || false;
+}
+
+function getAchievements() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('achievements') || '{}');
+        return stored;
+    } catch (error) {
+        return {};
+    }
+}
+
+function saveAchievements(achievements) {
+    localStorage.setItem('achievements', JSON.stringify(achievements));
+}
+
+function unlockAchievement(username, achievementId) {
+    const achievements = getAchievements();
+    if (!achievements[username]) {
+        achievements[username] = [];
+    }
+    if (!achievements[username].includes(achievementId)) {
+        achievements[username].push(achievementId);
+        saveAchievements(achievements);
+        showToast('Achievement Unlocked!', achievementId, 'success');
+    }
+}
+
+function hasAchievement(username, achievementId) {
+    const achievements = getAchievements();
+    return achievements[username]?.includes(achievementId) || false;
+}
+
+const ACHIEVEMENTS = {
+    FIRST_TRADE: 'First Trade',
+    TRADER_MASTER: 'Trader Master',
+    SOCIAL_BUTTERFLY: 'Social Butterfly',
+    HELPER: 'Helper',
+    COLLECTOR: 'Collector'
+};
 
 function renderMessages() {
     const messagesList = document.getElementById('messagesList');
@@ -410,13 +552,23 @@ function renderMessages() {
             const userMessages = conversations[username];
             const lastMessage = userMessages[userMessages.length - 1];
             const preview = sanitizeText(lastMessage.text).substring(0, 50) + (lastMessage.text.length > 50 ? '...' : '');
+            const avatar = getUserAvatar(username);
+            const lastSeen = localStorage.getItem(`lastSeen_${username}`) || Date.now();
+            const isOnline = (Date.now() - parseInt(lastSeen)) < 300000; // 5 minutes
             return `
                 <div class="conversation-item" onclick="openConversation('${username.replace(/'/g, "\\'")}')">
-                    <div class="conversation-header">
-                        <strong>${sanitizeText(username)}</strong>
-                        <span class="conversation-time">${new Date(lastMessage.createdAt).toLocaleString('pl-PL')}</span>
+                    <div class="conversation-avatar" style="background: ${avatar.background};">
+                        ${avatar.initial}
+                        ${isOnline ? '<div class="online-indicator"></div>' : ''}
                     </div>
-                    <div class="conversation-preview">${preview}</div>
+                    <div class="conversation-content">
+                        <div class="conversation-header">
+                            <strong>${sanitizeText(username)}</strong>
+                            <span class="conversation-time">${new Date(lastMessage.createdAt).toLocaleString('pl-PL')}</span>
+                        </div>
+                        <div class="conversation-preview">${preview}</div>
+                        ${isOnline ? '<div class="online-status">Online</div>' : ''}
+                    </div>
                 </div>
             `;
         }).join('')
@@ -476,6 +628,46 @@ function quickReply(username) {
     addNotification(username, `New DM from ${currentUser}.`);
     openConversation(username);
     showToast('Success', 'Message sent!', 'success');
+}
+
+function filterMessages() {
+    const query = document.getElementById('messagesSearchInput')?.value.trim().toLowerCase();
+    const conversationItems = document.querySelectorAll('.conversation-item');
+
+    conversationItems.forEach((item) => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(query) ? '' : 'none';
+    });
+}
+
+function filterNotifications() {
+    const query = document.getElementById('notificationsSearchInput')?.value.trim().toLowerCase();
+    const notificationCards = document.querySelectorAll('.notification-card');
+
+    notificationCards.forEach((card) => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = text.includes(query) ? '' : 'none';
+    });
+}
+
+function filterOffers() {
+    const query = document.getElementById('offersSearchInput')?.value.trim().toLowerCase();
+    const offerItems = document.querySelectorAll('#tradeOffersList .trade-offer');
+
+    offerItems.forEach((item) => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(query) ? '' : 'none';
+    });
+}
+
+function filterRequests() {
+    const query = document.getElementById('requestsSearchInput')?.value.trim().toLowerCase();
+    const requestItems = document.querySelectorAll('#tradeRequestsList .trade-offer');
+
+    requestItems.forEach((item) => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(query) ? '' : 'none';
+    });
 }
 
 function renderAdminPanel() {
@@ -623,6 +815,40 @@ function renderAccount() {
                             <small>${new Date(r.createdAt).toLocaleString('pl-PL')}</small>
                         </div>
                     `).join('') : '<div class="trade-empty">No active requests</div>'}
+                </div>
+            </div>
+
+            <div class="account-card">
+                <h3>Achievements</h3>
+                <div class="account-stats">
+                    <div>Unlocked: ${getAchievements()[currentUser]?.length || 0}/5</div>
+                </div>
+                <div class="account-list">
+                    ${Object.values(ACHIEVEMENTS).map(achievement => {
+                        const unlocked = hasAchievement(currentUser, achievement);
+                        return `
+                            <div class="account-item ${unlocked ? 'achievement-unlocked' : 'achievement-locked'}">
+                                <strong>${achievement}</strong>
+                                ${unlocked ? '✓' : '🔒'}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+
+            <div class="account-card">
+                <h3>Transaction History</h3>
+                <div class="account-stats">
+                    <div>Total transactions: ${getTransactionHistory().length}</div>
+                </div>
+                <div class="account-list">
+                    ${getTransactionHistory().length ? getTransactionHistory().slice(0, 5).map((t) => `
+                        <div class="account-item">
+                            <strong>${sanitizeText(t.item)}</strong>
+                            <span>${sanitizeText(t.price || 'N/A')}</span>
+                            <small>${new Date(t.createdAt).toLocaleString('pl-PL')}</small>
+                        </div>
+                    `).join('') : '<div class="trade-empty">No transactions yet</div>'}
                 </div>
             </div>
         </div>
@@ -1009,6 +1235,9 @@ function renderTradePlace() {
             const message = sanitizeText(offer.message || 'No extra note.');
             const seller = sanitizeText(offer.seller);
             const isOwner = currentUser === offer.seller;
+            const item = items.find(i => i.name === offer.itemName);
+            const itemIcon = item?.icon || '';
+            const itemRarity = item?.rarity || 'Common';
             const actionButtons = isOwner
                 ? '<span class="trade-tag">Your offer</span>'
                 : `
@@ -1020,7 +1249,13 @@ function renderTradePlace() {
             return `
                 <div class="trade-offer">
                     <div class="trade-offer-header">
-                        <strong>${itemName}</strong>
+                        <div class="trade-item-preview">
+                            ${itemIcon ? `<span class="item-icon">${itemIcon}</span>` : ''}
+                            <div class="item-info">
+                                <strong>${itemName}</strong>
+                                <span class="item-rarity">${itemRarity}</span>
+                            </div>
+                        </div>
                         <span>${sanitizeText(offer.price || 'Open to trade')}</span>
                     </div>
                     <p>${message}</p>
@@ -1400,7 +1635,17 @@ window.startDm = startDm;
 window.closeDmModal = closeDmModal;
 window.openConversation = openConversation;
 window.quickReply = quickReply;
+window.filterMessages = filterMessages;
+window.filterNotifications = filterNotifications;
+window.filterOffers = filterOffers;
+window.filterRequests = filterRequests;
 window.clearNotification = clearNotification;
+window.addTransaction = addTransaction;
+window.rateTransaction = rateTransaction;
+window.toggleWatchlist = toggleWatchlist;
+window.isWatched = isWatched;
+window.unlockAchievement = unlockAchievement;
+window.hasAchievement = hasAchievement;
 window.handleBanUser = handleBanUser;
 window.handleWarnUser = handleWarnUser;
 window.handleUnbanIp = handleUnbanIp;

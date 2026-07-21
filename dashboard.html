@@ -111,11 +111,17 @@
 
                     <div class="trade-card">
                         <h3>Open offers</h3>
+                        <div class="search-box">
+                            <input type="text" id="offersSearchInput" placeholder="Search offers..." onkeyup="filterOffers()">
+                        </div>
                         <div id="tradeOffersList" class="trade-offers-list"></div>
                     </div>
 
                     <div class="trade-card">
                         <h3>Open requests</h3>
+                        <div class="search-box">
+                            <input type="text" id="requestsSearchInput" placeholder="Search requests..." onkeyup="filterRequests()">
+                        </div>
                         <div id="tradeRequestsList" class="trade-offers-list"></div>
                     </div>
 
@@ -158,6 +164,9 @@
                         <h2>Messages</h2>
                         <p>Your direct messages with other players.</p>
                     </div>
+                    <div class="search-box">
+                        <input type="text" id="messagesSearchInput" placeholder="Search conversations..." onkeyup="filterMessages()">
+                    </div>
                     <div id="messagesList" class="messages-list"></div>
                 </section>
             </div>
@@ -167,6 +176,9 @@
                     <div class="panel-heading">
                         <h2>Notifications</h2>
                         <p>Your recent activity notifications.</p>
+                    </div>
+                    <div class="search-box">
+                        <input type="text" id="notificationsSearchInput" placeholder="Search notifications..." onkeyup="filterNotifications()">
                     </div>
                     <div id="notificationsList" class="notifications-list"></div>
                 </section>
