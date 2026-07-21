@@ -16,14 +16,50 @@ const defaultItems = [
     { icon: '💠', name: 'Void Shard', price: 670, corruptedPages: 120, tier: 'S', rarity: 'Legendary', type: 'Crafting Material' }
 ];
 
-// Załaduj dane z localStorage lub użyj domyślnych
+let currentSort = { key: 'corruptedPages', direction: 'desc' };
+
 function loadTableData(userRole) {
     let items = JSON.parse(localStorage.getItem('items')) || defaultItems;
-    renderTable(items, userRole);
+    const sortedItems = sortItems(items, currentSort.key, currentSort.direction);
+    renderTable(sortedItems, userRole);
     updateLastUpdate();
 }
 
-// Renderuj tabelę
+function sortItems(items, key, direction) {
+    const sorted = [...items];
+
+    sorted.sort((a, b) => {
+        let valueA = a[key];
+        let valueB = b[key];
+
+        if (key === 'name' || key === 'type' || key === 'tier' || key === 'rarity') {
+            valueA = String(valueA || '').toLowerCase();
+            valueB = String(valueB || '').toLowerCase();
+        } else if (key === 'corruptedPages') {
+            valueA = Number(valueA || 0);
+            valueB = Number(valueB || 0);
+        }
+
+        if (valueA < valueB) return direction === 'asc' ? -1 : 1;
+        if (valueA > valueB) return direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    return sorted;
+}
+
+function toggleSort(key) {
+    if (currentSort.key === key) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSort.key = key;
+        currentSort.direction = 'asc';
+    }
+
+    const userRole = localStorage.getItem('userRole') || 'admin';
+    loadTableData(userRole);
+}
+
 function renderTable(items, userRole) {
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
@@ -46,7 +82,6 @@ function renderTable(items, userRole) {
         row.innerHTML = `
             <td>${iconCell}</td>
             <td>${item.name}</td>
-            <td>${item.price}</td>
             <td>${corruptedPages}</td>
             <td>${tier}</td>
             <td class="${rarityClass}">${item.rarity}</td>
@@ -114,3 +149,9 @@ function updateLastUpdate() {
     const dateStr = now.toLocaleDateString('pl-PL') + ' ' + now.toLocaleTimeString('pl-PL');
     document.getElementById('lastUpdate').textContent = dateStr;
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.sort-btn').forEach((button) => {
+        button.addEventListener('click', () => toggleSort(button.dataset.sort));
+    });
+});

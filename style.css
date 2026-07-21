@@ -398,6 +398,16 @@ th {
     border-right: 1px solid #00ff00;
 }
 
+.sort-btn {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    padding: 0;
+    text-transform: uppercase;
+}
+
 th:last-child {
     border-right: none;
 }
