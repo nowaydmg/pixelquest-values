@@ -1,19 +1,19 @@
 // Domyślne dane przedmiotów
 const defaultItems = [
-    { name: 'Ancient Scroll Fragment', price: 150, rarity: 'Rare', type: 'Crafting Material' },
-    { name: 'Cursed Amulet', price: 450, rarity: 'Epic', type: 'Accessory' },
-    { name: 'Corrupted Core', price: 280, rarity: 'Rare', type: 'Crafting Material' },
-    { name: 'Dark Crystal', price: 320, rarity: 'Epic', type: 'Crafting Material' },
-    { name: 'Enchanted Dagger', price: 380, rarity: 'Rare', type: 'Weapon' },
-    { name: 'Forbidden Grimoire', price: 520, rarity: 'Epic', type: 'Quest Item' },
-    { name: 'Glowing Essence', price: 95, rarity: 'Common', type: 'Crafting Material' },
-    { name: 'Obsidian Helm', price: 410, rarity: 'Epic', type: 'Armor' },
-    { name: "Phantom's Whisper", price: 620, rarity: 'Legendary', type: 'Weapon' },
-    { name: 'Rusted Coin', price: 45, rarity: 'Common', type: 'Currency' },
-    { name: 'Shadow Cloak', price: 390, rarity: 'Epic', type: 'Armor' },
-    { name: 'Soul Fragment', price: 550, rarity: 'Legendary', type: 'Crafting Material' },
-    { name: 'Tainted Potion', price: 120, rarity: 'Common', type: 'Consumable' },
-    { name: 'Void Shard', price: 670, rarity: 'Legendary', type: 'Crafting Material' }
+    { icon: '📜', name: 'Ancient Scroll Fragment', price: 150, corruptedPages: 42, tier: 'A', rarity: 'Rare', type: 'Crafting Material' },
+    { icon: '🪻', name: 'Cursed Amulet', price: 450, corruptedPages: 88, tier: 'S', rarity: 'Epic', type: 'Accessory' },
+    { icon: '💎', name: 'Corrupted Core', price: 280, corruptedPages: 56, tier: 'B', rarity: 'Rare', type: 'Crafting Material' },
+    { icon: '🔮', name: 'Dark Crystal', price: 320, corruptedPages: 64, tier: 'A', rarity: 'Epic', type: 'Crafting Material' },
+    { icon: '🗡️', name: 'Enchanted Dagger', price: 380, corruptedPages: 70, tier: 'A', rarity: 'Rare', type: 'Weapon' },
+    { icon: '📖', name: 'Forbidden Grimoire', price: 520, corruptedPages: 95, tier: 'S', rarity: 'Epic', type: 'Quest Item' },
+    { icon: '✨', name: 'Glowing Essence', price: 95, corruptedPages: 18, tier: 'C', rarity: 'Common', type: 'Crafting Material' },
+    { icon: '🛡️', name: 'Obsidian Helm', price: 410, corruptedPages: 76, tier: 'A', rarity: 'Epic', type: 'Armor' },
+    { icon: '🌙', name: "Phantom's Whisper", price: 620, corruptedPages: 110, tier: 'S', rarity: 'Legendary', type: 'Weapon' },
+    { icon: '🪙', name: 'Rusted Coin', price: 45, corruptedPages: 10, tier: 'C', rarity: 'Common', type: 'Currency' },
+    { icon: '🧥', name: 'Shadow Cloak', price: 390, corruptedPages: 72, tier: 'A', rarity: 'Epic', type: 'Armor' },
+    { icon: '🕯️', name: 'Soul Fragment', price: 550, corruptedPages: 100, tier: 'S', rarity: 'Legendary', type: 'Crafting Material' },
+    { icon: '🧪', name: 'Tainted Potion', price: 120, corruptedPages: 24, tier: 'B', rarity: 'Common', type: 'Consumable' },
+    { icon: '💠', name: 'Void Shard', price: 670, corruptedPages: 120, tier: 'S', rarity: 'Legendary', type: 'Crafting Material' }
 ];
 
 // Załaduj dane z localStorage lub użyj domyślnych
@@ -37,9 +37,16 @@ function renderTable(items, userRole) {
             actionsCell = `<td><button onclick="deleteItem(${index})" class="btn-delete">Usuń</button></td>`;
         }
 
+        const iconCell = item.icon ? `<span class="item-icon">${item.icon}</span>` : '<span class="item-icon">—</span>';
+        const corruptedPages = item.corruptedPages !== undefined ? item.corruptedPages : '—';
+        const tier = item.tier ? item.tier : '—';
+
         row.innerHTML = `
+            <td>${iconCell}</td>
             <td>${item.name}</td>
             <td>${item.price}</td>
+            <td>${corruptedPages}</td>
+            <td>${tier}</td>
             <td class="${rarityClass}">${item.rarity}</td>
             <td>${item.type}</td>
             ${actionsCell}
@@ -50,27 +57,31 @@ function renderTable(items, userRole) {
 
 // Dodaj przedmiot (tylko admin)
 function addItem() {
+    const icon = document.getElementById('itemIcon').value.trim();
     const name = document.getElementById('itemName').value.trim();
     const price = parseInt(document.getElementById('itemPrice').value);
+    const corruptedPages = document.getElementById('itemCorruptedPages').value.trim();
+    const tier = document.getElementById('itemTier').value.trim();
     const rarity = document.getElementById('itemRarity').value;
     const type = document.getElementById('itemType').value.trim();
 
-    if (!name || !price || !type) {
-        alert('> ERROR: Fill all fields!');
+    if (!name || !type) {
+        alert('> ERROR: Fill name and type fields!');
         return;
     }
 
     let items = JSON.parse(localStorage.getItem('items')) || defaultItems;
-    items.push({ name, price, rarity, type });
+    items.push({ icon, name, price, corruptedPages: corruptedPages ? parseInt(corruptedPages) : undefined, tier, rarity, type });
     localStorage.setItem('items', JSON.stringify(items));
 
-    // Wyczyść formularz
+    document.getElementById('itemIcon').value = '';
     document.getElementById('itemName').value = '';
     document.getElementById('itemPrice').value = '';
+    document.getElementById('itemCorruptedPages').value = '';
+    document.getElementById('itemTier').value = '';
     document.getElementById('itemType').value = '';
     document.getElementById('itemRarity').value = 'Common';
 
-    // Odśwież tabelę
     loadTableData('admin');
 }
 

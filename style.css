@@ -257,7 +257,7 @@ body {
 
 .add-item-form {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr auto;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
 }
 
@@ -296,6 +296,7 @@ body {
     font-family: 'Press Start 2P', cursive;
     font-size: 0.6em;
     text-shadow: 1px 1px 0px #000000;
+    grid-column: span 4;
 }
 
 .btn-add:hover {
@@ -403,6 +404,14 @@ td {
     font-size: 0.65em;
     border-right: 1px solid #333333;
     text-shadow: 1px 1px 0px #000000;
+}
+
+.item-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    font-size: 1.1em;
 }
 
 td:last-child {
