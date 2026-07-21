@@ -356,6 +356,102 @@ function renderLeaderboard() {
         : '<div class="trade-empty">No ratings yet. Complete trades to get rated!</div>';
 }
 
+function renderMessages() {
+    const messagesList = document.getElementById('messagesList');
+    if (!messagesList) return;
+
+    const currentUser = getCurrentUser();
+    const messages = getDirectMessages();
+    const users = getRegisteredUsers();
+
+    const conversations = {};
+    messages.forEach((msg) => {
+        const otherUser = msg.from === currentUser ? msg.to : msg.from;
+        if (!conversations[otherUser]) {
+            conversations[otherUser] = [];
+        }
+        conversations[otherUser].push(msg);
+    });
+
+    const conversationKeys = Object.keys(conversations).sort((a, b) => {
+        const lastA = conversations[a][conversations[a].length - 1].createdAt;
+        const lastB = conversations[b][conversations[b].length - 1].createdAt;
+        return new Date(lastB) - new Date(lastA);
+    });
+
+    messagesList.innerHTML = conversationKeys.length
+        ? conversationKeys.map((username) => {
+            const userMessages = conversations[username];
+            const lastMessage = userMessages[userMessages.length - 1];
+            const preview = sanitizeText(lastMessage.text).substring(0, 50) + (lastMessage.text.length > 50 ? '...' : '');
+            return `
+                <div class="conversation-item" onclick="openConversation('${username.replace(/'/g, "\\'")}')">
+                    <div class="conversation-header">
+                        <strong>${sanitizeText(username)}</strong>
+                        <span class="conversation-time">${new Date(lastMessage.createdAt).toLocaleString('pl-PL')}</span>
+                    </div>
+                    <div class="conversation-preview">${preview}</div>
+                </div>
+            `;
+        }).join('')
+        : '<div class="trade-empty">No messages yet.</div>';
+}
+
+function openConversation(username) {
+    const messagesList = document.getElementById('messagesList');
+    const currentUser = getCurrentUser();
+    const messages = getDirectMessages();
+
+    const conversation = messages.filter((msg) => {
+        return (msg.from === currentUser && msg.to === username) || (msg.from === username && msg.to === currentUser);
+    }).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+    messagesList.innerHTML = `
+        <div class="conversation-view">
+            <div class="conversation-back">
+                <button class="btn btn-secondary btn-small" onclick="renderMessages()">← Back</button>
+                <strong>Conversation with ${sanitizeText(username)}</strong>
+            </div>
+            <div class="conversation-messages">
+                ${conversation.map((msg) => `
+                    <div class="dm-message ${msg.from === currentUser ? 'mine' : ''}">
+                        <div class="dm-message-meta">${msg.from === currentUser ? 'You' : sanitizeText(msg.from)}</div>
+                        <div>${sanitizeText(msg.text)}</div>
+                        <div class="dm-message-time">${new Date(msg.createdAt).toLocaleString('pl-PL')}</div>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="conversation-reply">
+                <textarea id="quickReplyMessage" rows="2" placeholder="Quick reply..."></textarea>
+                <button class="btn btn-primary" onclick="quickReply('${username.replace(/'/g, "\\'")}')">Send</button>
+            </div>
+        </div>
+    `;
+}
+
+function quickReply(username) {
+    const text = document.getElementById('quickReplyMessage')?.value.trim();
+    if (!text) {
+        showToast('Error', 'Write a message first.', 'error');
+        return;
+    }
+
+    const currentUser = getCurrentUser();
+    const messages = getDirectMessages();
+    messages.push({
+        id: Date.now(),
+        from: currentUser,
+        to: username,
+        text: sanitizeText(text),
+        createdAt: new Date().toISOString()
+    });
+
+    saveDirectMessages(messages);
+    addNotification(username, `New DM from ${currentUser}.`);
+    openConversation(username);
+    showToast('Success', 'Message sent!', 'success');
+}
+
 function renderAdminPanel() {
     const currentUser = getCurrentUser();
     const userSelect = document.getElementById('adminUserSelect');
@@ -383,6 +479,63 @@ function renderAdminPanel() {
             ? bannedIps.map((ip) => `<div class="ban-row"><span>${ip}</span><button type="button" class="btn btn-secondary btn-small" onclick="handleUnbanIp('${ip}')">Unban</button></div>`).join('')
             : '<div class="empty-state">No banned IPs.</div>';
     }
+}
+
+function renderAccount() {
+    const accountContent = document.getElementById('accountContent');
+    if (!accountContent) return;
+
+    const currentUser = getCurrentUser();
+    const userRole = localStorage.getItem('userRole') || 'user';
+    const ratings = getPlayerRatings();
+    const userRating = ratings[currentUser] || { average: 0, count: 0 };
+    const offers = getTradeOffers().filter((o) => o.seller === currentUser);
+    const requests = getTradeRequests().filter((r) => r.requester === currentUser);
+
+    accountContent.innerHTML = `
+        <div class="account-grid">
+            <div class="account-card">
+                <h3>Profile</h3>
+                <div class="account-info">
+                    <div><strong>Username:</strong> ${sanitizeText(currentUser)}</div>
+                    <div><strong>Role:</strong> <span class="role-badge">${userRole}</span></div>
+                    <div><strong>Rating:</strong> ${userRating.average} ★ (${userRating.count} ratings)</div>
+                </div>
+            </div>
+
+            <div class="account-card">
+                <h3>Your Trade Offers</h3>
+                <div class="account-stats">
+                    <div>Active offers: ${offers.length}</div>
+                </div>
+                <div class="account-list">
+                    ${offers.length ? offers.map((o) => `
+                        <div class="account-item">
+                            <strong>${sanitizeText(o.itemName)}</strong>
+                            <span>${sanitizeText(o.price || 'Open to trade')}</span>
+                            <small>${new Date(o.createdAt).toLocaleString('pl-PL')}</small>
+                        </div>
+                    `).join('') : '<div class="trade-empty">No active offers</div>'}
+                </div>
+            </div>
+
+            <div class="account-card">
+                <h3>Your Trade Requests</h3>
+                <div class="account-stats">
+                    <div>Active requests: ${requests.length}</div>
+                </div>
+                <div class="account-list">
+                    ${requests.length ? requests.map((r) => `
+                        <div class="account-item">
+                            <strong>${sanitizeText(r.itemName)}</strong>
+                            <span>Qty: ${r.quantity}</span>
+                            <small>${new Date(r.createdAt).toLocaleString('pl-PL')}</small>
+                        </div>
+                    `).join('') : '<div class="trade-empty">No active requests</div>'}
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function renderRoleManager() {
@@ -549,6 +702,8 @@ function loadTableData(userRole) {
     renderModeratorReports();
     renderReportSection();
     renderLeaderboard();
+    renderMessages();
+    renderAccount();
     renderAdminPanel();
     renderRoleManager();
     updateLastUpdate();
@@ -991,15 +1146,61 @@ function rejectTradeOffer(id) {
 }
 
 function startDm(recipient) {
-    const dmRecipient = document.getElementById('dmRecipient');
-    if (dmRecipient) {
-        dmRecipient.value = recipient;
-        renderTradePlace();
-        const dmMessage = document.getElementById('dmMessage');
-        if (dmMessage) {
-            dmMessage.focus();
-        }
+    const modal = document.getElementById('dmModal');
+    const recipientInput = document.getElementById('dmModalRecipient');
+    const recipientDisplay = document.getElementById('dmModalRecipientDisplay');
+    const messageInput = document.getElementById('dmModalMessage');
+
+    if (modal && recipientInput && recipientDisplay && messageInput) {
+        recipientInput.value = recipient;
+        recipientDisplay.textContent = `To: ${recipient}`;
+        messageInput.value = '';
+        modal.style.display = 'flex';
+        messageInput.focus();
     }
+}
+
+function closeDmModal() {
+    const modal = document.getElementById('dmModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function sendDmFromModal() {
+    const recipient = document.getElementById('dmModalRecipient')?.value;
+    const text = document.getElementById('dmModalMessage')?.value.trim();
+
+    if (!recipient || !text) {
+        showToast('Error', 'Write a message first.', 'error');
+        return;
+    }
+
+    if (!isSafeString(text) || !isSafeString(recipient)) {
+        showToast('Error', 'Unsafe content detected.', 'error');
+        return;
+    }
+
+    if (!canPerformAction('directMessage', 8, 60_000)) {
+        showToast('Warning', 'Too many messages recently.', 'warning');
+        return;
+    }
+
+    recordAction('directMessage');
+    const messages = getDirectMessages();
+    messages.push({
+        id: Date.now(),
+        from: getCurrentUser(),
+        to: recipient,
+        text: sanitizeText(text),
+        createdAt: new Date().toISOString()
+    });
+
+    saveDirectMessages(messages);
+    addNotification(recipient, `New DM from ${getCurrentUser()}.`);
+    closeDmModal();
+    renderMessages();
+    showToast('Success', 'Message sent!', 'success');
 }
 
 function sendDirectMessage() {
@@ -1110,8 +1311,7 @@ function initDashboardControls() {
     document.getElementById('itemImageUpload')?.addEventListener('change', handleItemImageUpload);
     document.getElementById('createTradeOfferBtn')?.addEventListener('click', createTradeOffer);
     document.getElementById('createTradeRequestBtn')?.addEventListener('click', createTradeRequest);
-    document.getElementById('sendDmBtn')?.addEventListener('click', sendDirectMessage);
-    document.getElementById('dmRecipient')?.addEventListener('change', renderTradePlace);
+    document.getElementById('dmModalSendBtn')?.addEventListener('click', sendDmFromModal);
     document.getElementById('submitReportBtn')?.addEventListener('click', submitReport);
 }
 

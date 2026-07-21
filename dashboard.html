@@ -9,6 +9,25 @@
 <body>
     <div class="dashboard-container">
         <div id="toastContainer" class="toast-container"></div>
+        <div id="dmModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Send Message</h3>
+                    <button class="modal-close" onclick="closeDmModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <input type="hidden" id="dmModalRecipient">
+                        <div id="dmModalRecipientDisplay" class="recipient-display"></div>
+                        <textarea id="dmModalMessage" rows="4" placeholder="Write your message..."></textarea>
+                        <div class="form-actions">
+                            <button id="dmModalSendBtn" class="btn btn-primary" type="button">Send</button>
+                            <button class="btn btn-secondary" type="button" onclick="closeDmModal()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <header class="dashboard-header">
             <h1>Pixel Quest Vault</h1>
             <div class="header-right">
@@ -23,6 +42,8 @@
             <button class="nav-btn" data-section="trade">Trade Place</button>
             <button id="reportNavBtn" class="nav-btn" data-section="report" style="display: none;">Report</button>
             <button class="nav-btn" data-section="leaderboard">Leaderboard</button>
+            <button class="nav-btn" data-section="messages">Messages</button>
+            <button class="nav-btn" data-section="account">Account</button>
             <button id="adminControlNavBtn" class="nav-btn" data-section="admin-control" style="display: none;">Admin Control</button>
             <button id="adminModerationNavBtn" class="nav-btn" data-section="admin-moderation" style="display: none;">Admin Moderation</button>
             <button id="roleManagerNavBtn" class="nav-btn" data-section="role-manager" style="display: none;">Role Manager</button>
@@ -85,18 +106,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        <div class="trade-card">
-                            <h3>Direct message</h3>
-                            <div class="form-grid trade-form">
-                                <select id="dmRecipient"></select>
-                                <textarea id="dmMessage" rows="3" placeholder="Write a message..."></textarea>
-                                <div class="form-actions">
-                                    <button id="sendDmBtn" class="btn btn-primary" type="button">Send message</button>
-                                </div>
-                            </div>
-                            <div id="dmMessagesList" class="dm-list"></div>
-                        </div>
                     </div>
 
                     <div class="trade-card">
@@ -144,6 +153,26 @@
                         <p>Top rated players by reputation.</p>
                     </div>
                     <div id="leaderboardList" class="leaderboard-list"></div>
+                </section>
+            </div>
+
+            <div id="messages-section" class="section-content" style="display: none;">
+                <section class="trade-panel">
+                    <div class="panel-heading">
+                        <h2>Messages</h2>
+                        <p>Your direct messages with other players.</p>
+                    </div>
+                    <div id="messagesList" class="messages-list"></div>
+                </section>
+            </div>
+
+            <div id="account-section" class="section-content" style="display: none;">
+                <section class="trade-panel">
+                    <div class="panel-heading">
+                        <h2>Account</h2>
+                        <p>Your profile and activity.</p>
+                    </div>
+                    <div id="accountContent" class="account-content"></div>
                 </section>
             </div>
 
