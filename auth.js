@@ -1,10 +1,4 @@
-const INITIAL_USERS = {
-    // NOTE: Default passwords must be changed on first login
-    // For production, use proper password hashing
-    admin: { password: 'CHANGE_ME_ADMIN', role: 'admin', ip: '192.168.1.2', warnings: 0, banned: false },
-    user: { password: 'CHANGE_ME_USER', role: 'user', ip: '192.168.1.10', warnings: 0, banned: false },
-    holybalenciagas: { password: 'CHANGE_ME_OWNER', role: 'owner', ip: '192.168.1.5', warnings: 0, banned: false }
-};
+const INITIAL_USERS = {};
 
 let USERS = { ...INITIAL_USERS };
 
