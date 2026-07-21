@@ -8,6 +8,7 @@
 </head>
 <body>
     <div class="dashboard-container">
+        <div id="toastContainer" class="toast-container"></div>
         <header class="dashboard-header">
             <h1>Pixel Quest Vault</h1>
             <div class="header-right">
@@ -21,6 +22,7 @@
             <button class="nav-btn active" data-section="values">Values</button>
             <button class="nav-btn" data-section="trade">Trade Place</button>
             <button id="reportNavBtn" class="nav-btn" data-section="report" style="display: none;">Report</button>
+            <button class="nav-btn" data-section="leaderboard">Leaderboard</button>
         </nav>
 
         <div class="container">
@@ -207,6 +209,16 @@
                         <p>View and manage player reports.</p>
                     </div>
                     <div id="reportList" class="trade-offers-list"></div>
+                </section>
+            </div>
+
+            <div id="leaderboard-section" class="section-content" style="display: none;">
+                <section class="trade-panel">
+                    <div class="panel-heading">
+                        <h2>Leaderboard</h2>
+                        <p>Top rated players by reputation.</p>
+                    </div>
+                    <div id="leaderboardList" class="leaderboard-list"></div>
                 </section>
             </div>
 

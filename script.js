@@ -19,6 +19,36 @@ let currentSort = { key: 'corruptedPages', direction: 'desc' };
 let editingIndex = null;
 let uploadedItemImage = null;
 
+function showToast(title, message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const icons = {
+        success: '✓',
+        error: '✕',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <span class="toast-icon">${icons[type] || icons.info}</span>
+        <div class="toast-content">
+            <div class="toast-title">${sanitizeText(title)}</div>
+            <div class="toast-message">${sanitizeText(message)}</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('hiding');
+        toast.addEventListener('animationend', () => toast.remove());
+    }, 4000);
+}
+
 function getCurrentUser() {
     return localStorage.getItem('currentUser') || 'guest';
 }
@@ -111,6 +141,30 @@ function saveReports(reports) {
     localStorage.setItem('reports', JSON.stringify(reports));
 }
 
+function getPlayerRatings() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('playerRatings') || '{}');
+        return stored;
+    } catch (error) {
+        return {};
+    }
+}
+
+function savePlayerRatings(ratings) {
+    localStorage.setItem('playerRatings', JSON.stringify(ratings));
+}
+
+function ratePlayer(targetUsername, rating) {
+    const ratings = getPlayerRatings();
+    if (!ratings[targetUsername]) {
+        ratings[targetUsername] = { total: 0, count: 0, average: 0 };
+    }
+    ratings[targetUsername].total += rating;
+    ratings[targetUsername].count += 1;
+    ratings[targetUsername].average = (ratings[targetUsername].total / ratings[targetUsername].count).toFixed(1);
+    savePlayerRatings(ratings);
+}
+
 function addReport(target, reason, reporter) {
     const reports = getReports();
     reports.push({
@@ -182,17 +236,17 @@ function submitReport() {
     const reason = document.getElementById('reportReason')?.value.trim();
 
     if (!target || !reason) {
-        alert('> ERROR: Select a player and enter a reason.');
+        showToast('Error', 'Select a player and enter a reason.', 'error');
         return;
     }
 
     if (!isSafeString(target) || !isSafeString(reason)) {
-        alert('> ERROR: Unsafe characters detected.');
+        showToast('Error', 'Unsafe characters detected.', 'error');
         return;
     }
 
     if (!canPerformAction('submitReport', 4, 60_000)) {
-        alert('> WAIT: Too many reports recently.');
+        showToast('Warning', 'Too many reports recently.', 'warning');
         return;
     }
 
@@ -201,7 +255,7 @@ function submitReport() {
     addNotification('all', `${currentUser} submitted a report against ${target}.`);
     document.getElementById('reportReason').value = '';
     renderReportTargets();
-    alert('Report submitted successfully.');
+    showToast('Success', 'Report submitted successfully.', 'success');
 }
 
 function renderModeratorReports() {
@@ -268,6 +322,40 @@ function renderReportSection() {
         : '<div class="trade-empty">No reports available.</div>';
 }
 
+function renderLeaderboard() {
+    const leaderboardList = document.getElementById('leaderboardList');
+    if (!leaderboardList) return;
+
+    const ratings = getPlayerRatings();
+    const entries = Object.entries(ratings).map(([username, data]) => ({
+        username,
+        ...data
+    }));
+
+    entries.sort((a, b) => parseFloat(b.average) - parseFloat(a.average));
+
+    leaderboardList.innerHTML = entries.length
+        ? entries.map((entry, index) => {
+            const rank = index + 1;
+            const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+            const stars = '★'.repeat(Math.round(parseFloat(entry.average)));
+            return `
+                <div class="leaderboard-item">
+                    <div class="leaderboard-rank ${rankClass}">${rank}</div>
+                    <div class="leaderboard-player">
+                        <span class="leaderboard-name">${sanitizeText(entry.username)}</span>
+                    </div>
+                    <div class="leaderboard-rating">
+                        <span class="leaderboard-stars">${stars}</span>
+                        <span class="leaderboard-score">${entry.average}</span>
+                        <span class="leaderboard-count">(${entry.count})</span>
+                    </div>
+                </div>
+            `;
+        }).join('')
+        : '<div class="trade-empty">No ratings yet. Complete trades to get rated!</div>';
+}
+
 function getTradeOffers() {
     try {
         const stored = JSON.parse(localStorage.getItem('tradeOffers') || '[]');
@@ -316,6 +404,7 @@ function loadTableData(userRole) {
     renderReportTargets();
     renderModeratorReports();
     renderReportSection();
+    renderLeaderboard();
     updateLastUpdate();
 }
 
@@ -425,7 +514,7 @@ function saveItem() {
     const type = document.getElementById('itemType').value.trim();
 
     if (!name || !type) {
-        alert('> ERROR: Fill name and type fields!');
+        showToast('Error', 'Fill name and type fields!', 'error');
         return;
     }
 
@@ -480,6 +569,7 @@ function deleteItem(index) {
             editingIndex -= 1;
         }
         loadTableData('admin');
+        showToast('Success', 'Item removed successfully', 'success');
     }
 }
 
@@ -581,17 +671,17 @@ function createTradeOffer() {
     const message = document.getElementById('tradeMessage')?.value.trim();
 
     if (!itemName) {
-        alert('> ERROR: Select an item before listing it.');
+        showToast('Error', 'Select an item before listing it.', 'error');
         return;
     }
 
     if (!isSafeString(itemName) || !isSafeString(message) || !isSafeString(price)) {
-        alert('> ERROR: Unsafe characters detected.');
+        showToast('Error', 'Unsafe characters detected.', 'error');
         return;
     }
 
     if (!canPerformAction('tradeOffer', 5, 60_000)) {
-        alert('> WAIT: Too many trade actions recently. Please wait a moment.');
+        showToast('Warning', 'Too many trade actions recently. Please wait a moment.', 'warning');
         return;
     }
 
@@ -611,12 +701,13 @@ function createTradeOffer() {
     document.getElementById('tradeMessage').value = '';
     addNotification('all', `${currentUser} posted a new trade offer for ${itemName}.`);
     renderTradePlace();
+    showToast('Success', 'Trade offer listed successfully!', 'success');
 }
 
 function acceptTradeOffer(id) {
     const currentUser = getCurrentUser();
     if (!canPerformAction('tradeResponse', 4, 60_000)) {
-        alert('> WAIT: Too many offer responses.');
+        showToast('Warning', 'Too many offer responses.', 'warning');
         return;
     }
     recordAction('tradeResponse');
@@ -624,7 +715,7 @@ function acceptTradeOffer(id) {
     const offers = getTradeOffers();
     const offer = offers.find((offer) => offer.id === id);
     if (!offer) {
-        alert('> ERROR: Offer not found.');
+        showToast('Error', 'Offer not found.', 'error');
         return;
     }
 
@@ -633,12 +724,22 @@ function acceptTradeOffer(id) {
     addNotification(offer.seller, `${currentUser} accepted your offer for ${offer.itemName}.`);
     addNotification(currentUser, `You accepted ${offer.seller}'s offer for ${offer.itemName}.`);
     renderTradePlace();
+    showToast('Success', 'Trade offer accepted!', 'success');
+
+    setTimeout(() => {
+        const rating = prompt(`Rate ${offer.seller} (1-5 stars):`, '5');
+        if (rating && !isNaN(rating) && rating >= 1 && rating <= 5) {
+            ratePlayer(offer.seller, parseInt(rating, 10));
+            showToast('Thanks', `You rated ${offer.seller} ${rating} stars!`, 'success');
+            renderLeaderboard();
+        }
+    }, 500);
 }
 
 function rejectTradeOffer(id) {
     const currentUser = getCurrentUser();
     if (!canPerformAction('tradeResponse', 6, 60_000)) {
-        alert('> WAIT: Too many offer responses.');
+        showToast('Warning', 'Too many offer responses.', 'warning');
         return;
     }
     recordAction('tradeResponse');
@@ -646,7 +747,7 @@ function rejectTradeOffer(id) {
     const offers = getTradeOffers();
     const offer = offers.find((offer) => offer.id === id);
     if (!offer) {
-        alert('> ERROR: Offer not found.');
+        showToast('Error', 'Offer not found.', 'error');
         return;
     }
 
@@ -654,6 +755,7 @@ function rejectTradeOffer(id) {
     saveTradeOffers(updatedOffers);
     addNotification(offer.seller, `${currentUser} rejected your offer for ${offer.itemName}.`);
     renderTradePlace();
+    showToast('Info', 'Trade offer rejected.', 'info');
 }
 
 function startDm(recipient) {
@@ -674,17 +776,17 @@ function sendDirectMessage() {
     const text = document.getElementById('dmMessage')?.value.trim();
 
     if (!recipient || !text) {
-        alert('> ERROR: Choose a player and write a message.');
+        showToast('Error', 'Choose a player and write a message.', 'error');
         return;
     }
 
     if (!isSafeString(text) || !isSafeString(recipient)) {
-        alert('> ERROR: Unsafe content detected.');
+        showToast('Error', 'Unsafe content detected.', 'error');
         return;
     }
 
     if (!canPerformAction('directMessage', 8, 60_000)) {
-        alert('> WAIT: Too many messages recently.');
+        showToast('Warning', 'Too many messages recently.', 'warning');
         return;
     }
 
@@ -702,6 +804,7 @@ function sendDirectMessage() {
     addNotification(recipient, `New DM from ${currentUser}.`);
     document.getElementById('dmMessage').value = '';
     renderTradePlace();
+    showToast('Success', 'Message sent!', 'success');
 }
 
 function updateLastUpdate() {
