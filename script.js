@@ -356,6 +356,137 @@ function renderLeaderboard() {
         : '<div class="trade-empty">No ratings yet. Complete trades to get rated!</div>';
 }
 
+function renderAdminPanel() {
+    const currentUser = getCurrentUser();
+    const userSelect = document.getElementById('adminUserSelect');
+    const bannedList = document.getElementById('bannedIpList');
+    const userSummary = document.getElementById('adminUserSummary');
+
+    const users = getAllUsers().filter((user) => user.username !== currentUser);
+    if (userSelect) {
+        userSelect.innerHTML = users
+            .map((user) => `<option value="${user.username}">${user.username} (${user.role})</option>`)
+            .join('') || '<option value="">No players available</option>';
+    }
+
+    if (userSummary) {
+        const selectedUsername = userSelect?.value || users[0]?.username;
+        const selectedUser = users.find((user) => user.username === selectedUsername);
+        userSummary.innerHTML = selectedUser
+            ? `<strong>IP:</strong> ${selectedUser.ip}<br><strong>Warnings:</strong> ${selectedUser.warnings}<br><strong>Banned:</strong> ${selectedUser.banned ? 'Yes' : 'No'}`
+            : '<em>Select a player to view details.</em>';
+    }
+
+    if (bannedList) {
+        const bannedIps = getBannedIps();
+        bannedList.innerHTML = bannedIps.length
+            ? bannedIps.map((ip) => `<div class="ban-row"><span>${ip}</span><button type="button" class="btn btn-secondary btn-small" onclick="handleUnbanIp('${ip}')">Unban</button></div>`).join('')
+            : '<div class="empty-state">No banned IPs.</div>';
+    }
+}
+
+function renderRoleManager() {
+    const currentUser = localStorage.getItem('currentUser');
+    const userSelect = document.getElementById('roleUserSelect');
+    const roleList = document.getElementById('roleManagerList');
+    const messageBox = document.getElementById('roleAssignmentMessage');
+    if (!userSelect || !roleList) return;
+
+    const users = getAllUsers();
+    const options = users
+        .filter((user) => user.username !== currentUser)
+        .map((user) => `<option value="${user.username}">${user.username}</option>`)
+        .join('');
+
+    userSelect.innerHTML = options || '<option value="">No players available</option>';
+    roleList.innerHTML = users
+        .map((user) => `
+            <div class="role-row">
+                <span>${user.username}</span>
+                <span class="role-badge">${user.role}</span>
+            </div>
+        `)
+        .join('');
+
+    if (messageBox) {
+        messageBox.textContent = '';
+        messageBox.className = 'auth-message';
+    }
+}
+
+function getAllUsers() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
+        return Object.entries(stored).map(([username, data]) => ({
+            username,
+            role: data.role || 'user',
+            ip: data.ip || 'unknown',
+            warnings: data.warnings || 0,
+            banned: Boolean(data.banned)
+        }));
+    } catch (error) {
+        return [];
+    }
+}
+
+function getBannedIps() {
+    try {
+        const stored = window.localStorage.getItem('bannedIps');
+        return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function handleUnbanIp(ip) {
+    const ips = getBannedIps().filter((entry) => entry !== ip);
+    window.localStorage.setItem('bannedIps', JSON.stringify(ips));
+    renderAdminPanel();
+    showToast('Success', `${ip} has been unbanned.`, 'success');
+}
+
+function handleAdminWarn() {
+    const username = document.getElementById('adminUserSelect')?.value;
+    if (!username) {
+        showToast('Error', 'Select a player to warn.', 'error');
+        return;
+    }
+    const users = getAllUsers();
+    const user = users.find(u => u.username === username);
+    if (user) {
+        user.warnings = (user.warnings || 0) + 1;
+        const stored = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
+        stored[username] = { ...stored[username], warnings: user.warnings };
+        localStorage.setItem('registeredUsers', JSON.stringify(stored));
+        renderAdminPanel();
+        showToast('Success', `${username} has been warned.`, 'success');
+    }
+}
+
+function handleAssignRole() {
+    const username = document.getElementById('roleUserSelect')?.value;
+    const role = document.getElementById('roleSelect')?.value;
+    const userRole = localStorage.getItem('userRole');
+
+    if (!username || !role) {
+        showToast('Error', 'Select a player and role first.', 'error');
+        return;
+    }
+
+    if (role === 'owner' && userRole !== 'owner') {
+        showToast('Error', 'Only owner can assign owner role.', 'error');
+        return;
+    }
+
+    const stored = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
+    if (stored[username]) {
+        stored[username].role = role;
+        localStorage.setItem('registeredUsers', JSON.stringify(stored));
+        renderRoleManager();
+        showToast('Success', `Updated ${username} to ${role}.`, 'success');
+    }
+}
+
 function getTradeOffers() {
     try {
         const stored = JSON.parse(localStorage.getItem('tradeOffers') || '[]');
@@ -405,6 +536,8 @@ function loadTableData(userRole) {
     renderModeratorReports();
     renderReportSection();
     renderLeaderboard();
+    renderAdminPanel();
+    renderRoleManager();
     updateLastUpdate();
 }
 

@@ -23,105 +23,12 @@
             <button class="nav-btn" data-section="trade">Trade Place</button>
             <button id="reportNavBtn" class="nav-btn" data-section="report" style="display: none;">Report</button>
             <button class="nav-btn" data-section="leaderboard">Leaderboard</button>
+            <button id="adminControlNavBtn" class="nav-btn" data-section="admin-control" style="display: none;">Admin Control</button>
+            <button id="adminModerationNavBtn" class="nav-btn" data-section="admin-moderation" style="display: none;">Admin Moderation</button>
+            <button id="roleManagerNavBtn" class="nav-btn" data-section="role-manager" style="display: none;">Role Manager</button>
         </nav>
 
         <div class="container">
-            <div id="adminPanel" style="display: none;" class="admin-panel">
-                <div class="panel-heading">
-                    <h2>Admin control</h2>
-                    <p>Create or edit items in the vault.</p>
-                </div>
-                <div class="form-grid">
-                    <input type="hidden" id="editingItemIndex">
-                    <input type="text" id="itemIcon" placeholder="Image URL or emoji">
-                    <input type="file" id="itemImageUpload" accept="image/*">
-                    <input type="text" id="itemName" placeholder="Item name">
-                    <input type="number" id="itemCorruptedPages" placeholder="Corrupted Pages">
-                    <input type="text" id="itemTier" placeholder="Tier">
-                    <select id="itemRarity">
-                        <option value="Common">Common</option>
-                        <option value="Rare">Rare</option>
-                        <option value="Epic">Epic</option>
-                        <option value="Legendary">Legendary</option>
-                    </select>
-                    <input type="text" id="itemType" placeholder="Type">
-                    <div id="itemImagePreview" class="image-preview"></div>
-                    <div class="form-actions">
-                        <button id="saveItemBtn" type="button" class="btn btn-primary">Add item</button>
-                        <button id="cancelEditBtn" type="button" class="btn btn-secondary">Cancel</button>
-                    </div>
-                </div>
-            </div>
-
-            <div id="adminActionsPanel" style="display: none;" class="admin-panel">
-                <div class="panel-heading">
-                    <h2>Admin moderation</h2>
-                    <p>Ban IPs and warn players.</p>
-                </div>
-                <div class="form-grid">
-                    <select id="adminUserSelect"></select>
-                    <button id="adminWarnBtn" type="button" class="btn btn-secondary">Warn user</button>
-                    <button id="adminBanIpBtn" type="button" class="btn btn-danger">Ban user's IP</button>
-                    <div id="adminUserSummary" class="role-summary"></div>
-                </div>
-                <div class="form-grid">
-                    <div class="panel-heading">
-                        <h3>Banned IPs</h3>
-                    </div>
-                    <div id="bannedIpList" class="role-list"></div>
-                </div>
-            </div>
-
-            <div id="valueManagerPanel" style="display: none;" class="admin-panel">
-                <div class="panel-heading">
-                    <h2>Value Manager</h2>
-                    <p>Change corrupted pages values only.</p>
-                </div>
-                <div class="form-grid">
-                    <select id="valueItemSelect"></select>
-                    <input id="valueItemCp" type="number" placeholder="New CP value">
-                    <button id="updateValueBtn" type="button" class="btn btn-primary">Update CP</button>
-                    <div id="valueItemSummary" class="role-summary"></div>
-                </div>
-            </div>
-
-            <div id="moderatorPanel" style="display: none;" class="admin-panel">
-                <div class="panel-heading">
-                    <h2>Moderator tools</h2>
-                    <p>Warn players for bad behavior and review reports.</p>
-                </div>
-                <div class="form-grid">
-                    <select id="moderatorUserSelect"></select>
-                    <button id="moderatorWarnBtn" type="button" class="btn btn-secondary">Warn user</button>
-                    <div id="moderatorWarningsList" class="role-list"></div>
-                </div>
-                <div class="panel-heading">
-                    <h3>Pending reports</h3>
-                </div>
-                <div id="moderatorReportsList" class="role-list"></div>
-            </div>
-
-            <div id="roleManagerPanel" style="display: none;" class="admin-panel">
-                <div class="panel-heading">
-                    <h2>Owner role manager</h2>
-                    <p>Assign special roles to other players.</p>
-                </div>
-                <div class="form-grid">
-                    <select id="roleUserSelect"></select>
-                    <select id="roleSelect">
-                        <option value="user">User</option>
-                        <option value="beta tester">Beta Tester</option>
-                        <option value="value manager">Value Manager</option>
-                        <option value="moderator">Moderator</option>
-                        <option value="admin">Admin</option>
-                        <option value="owner">Owner</option>
-                    </select>
-                    <button id="assignRoleBtn" type="button" class="btn btn-primary">Assign role</button>
-                    <div id="roleAssignmentMessage" class="auth-message"></div>
-                </div>
-                <div id="roleManagerList" class="role-list"></div>
-            </div>
-
             <div id="values-section" class="section-content">
                 <div class="toolbar">
                     <div class="search-box">
@@ -219,6 +126,79 @@
                         <p>Top rated players by reputation.</p>
                     </div>
                     <div id="leaderboardList" class="leaderboard-list"></div>
+                </section>
+            </div>
+
+            <div id="admin-control-section" class="section-content" style="display: none;">
+                <section class="trade-panel">
+                    <div class="panel-heading">
+                        <h2>Admin Control</h2>
+                        <p>Create or edit items in the vault.</p>
+                    </div>
+                    <div class="form-grid">
+                        <input type="hidden" id="editingItemIndex">
+                        <input type="text" id="itemIcon" placeholder="Image URL or emoji">
+                        <input type="file" id="itemImageUpload" accept="image/*">
+                        <input type="text" id="itemName" placeholder="Item name">
+                        <input type="number" id="itemCorruptedPages" placeholder="Corrupted Pages">
+                        <input type="text" id="itemTier" placeholder="Tier">
+                        <select id="itemRarity">
+                            <option value="Common">Common</option>
+                            <option value="Rare">Rare</option>
+                            <option value="Epic">Epic</option>
+                            <option value="Legendary">Legendary</option>
+                        </select>
+                        <input type="text" id="itemType" placeholder="Type">
+                        <div id="itemImagePreview" class="image-preview"></div>
+                        <div class="form-actions">
+                            <button id="saveItemBtn" type="button" class="btn btn-primary">Add item</button>
+                            <button id="cancelEditBtn" type="button" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div id="admin-moderation-section" class="section-content" style="display: none;">
+                <section class="trade-panel">
+                    <div class="panel-heading">
+                        <h2>Admin Moderation</h2>
+                        <p>Ban IPs and warn players.</p>
+                    </div>
+                    <div class="form-grid">
+                        <select id="adminUserSelect"></select>
+                        <button id="adminWarnBtn" type="button" class="btn btn-secondary">Warn user</button>
+                        <button id="adminBanIpBtn" type="button" class="btn btn-danger">Ban user's IP</button>
+                        <div id="adminUserSummary" class="role-summary"></div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="panel-heading">
+                            <h3>Banned IPs</h3>
+                        </div>
+                        <div id="bannedIpList" class="role-list"></div>
+                    </div>
+                </section>
+            </div>
+
+            <div id="role-manager-section" class="section-content" style="display: none;">
+                <section class="trade-panel">
+                    <div class="panel-heading">
+                        <h2>Role Manager</h2>
+                        <p>Assign special roles to other players.</p>
+                    </div>
+                    <div class="form-grid">
+                        <select id="roleUserSelect"></select>
+                        <select id="roleSelect">
+                            <option value="user">User</option>
+                            <option value="beta tester">Beta Tester</option>
+                            <option value="value manager">Value Manager</option>
+                            <option value="moderator">Moderator</option>
+                            <option value="admin">Admin</option>
+                            <option value="owner">Owner</option>
+                        </select>
+                        <button id="assignRoleBtn" type="button" class="btn btn-primary">Assign role</button>
+                        <div id="roleAssignmentMessage" class="auth-message"></div>
+                    </div>
+                    <div id="roleManagerList" class="role-list"></div>
                 </section>
             </div>
 

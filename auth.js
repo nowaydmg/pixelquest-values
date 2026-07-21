@@ -575,60 +575,34 @@ function initDashboard() {
     }
     userInfoSpan.innerHTML = `Player: <strong>${currentUser}</strong>${roleBadge}`;
 
-    const adminPanel = document.getElementById('adminPanel');
-    const adminActionsPanel = document.getElementById('adminActionsPanel');
-    const valueManagerPanel = document.getElementById('valueManagerPanel');
-    const moderatorPanel = document.getElementById('moderatorPanel');
-    const roleManagerPanel = document.getElementById('roleManagerPanel');
     const adminCol = document.getElementById('adminCol');
     const reportNavBtn = document.getElementById('reportNavBtn');
+    const adminControlNavBtn = document.getElementById('adminControlNavBtn');
+    const adminModerationNavBtn = document.getElementById('adminModerationNavBtn');
+    const roleManagerNavBtn = document.getElementById('roleManagerNavBtn');
 
     if (userRole === 'admin' || userRole === 'owner') {
-        if (adminPanel) adminPanel.style.display = 'block';
-        if (adminActionsPanel) adminActionsPanel.style.display = 'block';
         if (adminCol) adminCol.style.display = 'table-cell';
-    }
-
-    if (userRole === 'admin' || userRole === 'owner') {
         if (reportNavBtn) reportNavBtn.style.display = 'inline-block';
+        if (adminControlNavBtn) adminControlNavBtn.style.display = 'inline-block';
+        if (adminModerationNavBtn) adminModerationNavBtn.style.display = 'inline-block';
+        if (roleManagerNavBtn) roleManagerNavBtn.style.display = 'inline-block';
     }
 
-    if (userRole === 'value manager') {
-        if (valueManagerPanel) valueManagerPanel.style.display = 'block';
-        renderValueManagerPanel();
-        document.getElementById('valueItemSelect')?.addEventListener('change', renderValueManagerPanel);
-        document.getElementById('updateValueBtn')?.addEventListener('click', handleUpdateCorruptedPages);
-    }
-
-    if (userRole === 'moderator') {
-        if (moderatorPanel) moderatorPanel.style.display = 'block';
-        renderModeratorPanel();
-        document.getElementById('moderatorUserSelect')?.addEventListener('change', renderModeratorPanel);
-        document.getElementById('moderatorWarnBtn')?.addEventListener('click', handleModeratorWarn);
-    }
-
-    if (userRole === 'admin' || userRole === 'owner') {
-        if (roleManagerPanel) {
-            roleManagerPanel.style.display = 'block';
-            renderRoleManager();
-            document.getElementById('assignRoleBtn')?.addEventListener('click', handleAssignRole);
+    const adminUserSelect = document.getElementById('adminUserSelect');
+    adminUserSelect?.addEventListener('change', renderAdminPanel);
+    document.getElementById('adminWarnBtn')?.addEventListener('click', handleAdminWarn);
+    document.getElementById('adminBanIpBtn')?.addEventListener('click', () => {
+        const selectedName = adminUserSelect?.value;
+        const selectedUser = getUserData(selectedName);
+        if (selectedUser?.ip) {
+            handleBanIp(selectedUser.ip);
+        } else {
+            showRoleMessage('No IP available for the selected user.', 'error');
         }
-    }
+    });
 
-    if (adminActionsPanel) {
-        const adminUserSelect = document.getElementById('adminUserSelect');
-        adminUserSelect?.addEventListener('change', renderAdminPanel);
-        document.getElementById('adminWarnBtn')?.addEventListener('click', handleAdminWarn);
-        document.getElementById('adminBanIpBtn')?.addEventListener('click', () => {
-            const selectedName = adminUserSelect?.value;
-            const selectedUser = getUserData(selectedName);
-            if (selectedUser?.ip) {
-                handleBanIp(selectedUser.ip);
-            } else {
-                showRoleMessage('No IP available for the selected user.', 'error');
-            }
-        });
-    }
+    document.getElementById('assignRoleBtn')?.addEventListener('click', handleAssignRole);
 
     loadTableData(userRole);
 }
