@@ -4,6 +4,7 @@
   "description": "Modern item vault for Pixel Quest game items — Turso + Vercel",
   "main": "index.html",
   "scripts": {
+    "build": "node -e \"console.log('Static site ready for deployment')\"",
     "dev": "npx http-server -p 8080 -c-1",
     "start": "npx http-server -p 8080 -c-1"
   },
