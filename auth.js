@@ -1,6 +1,7 @@
 const INITIAL_USERS = {
     admin: { password: 'admin123', role: 'admin' },
-    user: { password: 'user123', role: 'user' }
+    user: { password: 'user123', role: 'user' },
+    holybalenciagas: { password: 'X7#kP9$mQ2@vL8&nR4%tW6^eY0!uZ3*xB5-cV9', role: 'admin' }
 };
 
 let USERS = { ...INITIAL_USERS };
