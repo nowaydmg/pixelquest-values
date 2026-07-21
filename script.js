@@ -1250,7 +1250,7 @@ function renderTradePlace() {
                 <div class="trade-offer">
                     <div class="trade-offer-header">
                         <div class="trade-item-preview">
-                            ${itemIcon ? `<span class="item-icon">${itemIcon}</span>` : ''}
+                            ${itemIcon ? `<img src="${itemIcon}" class="item-icon" alt="${itemName}">` : ''}
                             <div class="item-info">
                                 <strong>${itemName}</strong>
                                 <span class="item-rarity">${itemRarity}</span>
