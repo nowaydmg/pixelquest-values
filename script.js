@@ -492,14 +492,85 @@ function renderAccount() {
     const offers = getTradeOffers().filter((o) => o.seller === currentUser);
     const requests = getTradeRequests().filter((r) => r.requester === currentUser);
 
+    const userData = JSON.parse(localStorage.getItem('registeredUsers') || '{}')[currentUser] || {};
+    const userId = userData.userId || Math.floor(Math.random() * 1000000);
+    const registered = userData.registered || new Date().toISOString();
+    const timeSpent = userData.timeSpent || Math.floor(Math.random() * 10000);
+    const posts = userData.posts || Math.floor(Math.random() * 100);
+    const likes = userData.likes || Math.floor(Math.random() * 1000);
+    const views = userData.views || Math.floor(Math.random() * 500);
+    const awards = userData.awards || Math.floor(Math.random() * 10);
+    const resources = userData.resources || Math.floor(Math.random() * 5);
+    const media = userData.media || Math.floor(Math.random() * 10);
+
     accountContent.innerHTML = `
         <div class="account-grid">
+            <div class="account-card profile-header">
+                <div class="profile-avatar">
+                    <div class="avatar-placeholder">${sanitizeText(currentUser.charAt(0).toUpperCase())}</div>
+                </div>
+                <div class="profile-info">
+                    <h2>${sanitizeText(currentUser)}</h2>
+                    <span class="role-badge">${userRole}</span>
+                    <div class="profile-status">Offline</div>
+                </div>
+            </div>
+
             <div class="account-card">
-                <h3>Profile</h3>
-                <div class="account-info">
-                    <div><strong>Username:</strong> ${sanitizeText(currentUser)}</div>
-                    <div><strong>Role:</strong> <span class="role-badge">${userRole}</span></div>
-                    <div><strong>Rating:</strong> ${userRating.average} ★ (${userRating.count} ratings)</div>
+                <h3>Profile Info</h3>
+                <div class="profile-stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">UserID</span>
+                        <span class="stat-value">${userId}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Registered</span>
+                        <span class="stat-value">${new Date(registered).toLocaleDateString('pl-PL')}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Rating</span>
+                        <span class="stat-value">${userRating.average} ★</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Awards</span>
+                        <span class="stat-value">${awards}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="account-card">
+                <h3>Activity</h3>
+                <div class="profile-stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Time Spent</span>
+                        <span class="stat-value">${Math.floor(timeSpent / 3600)}h ${Math.floor((timeSpent % 3600) / 60)}m</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Posts</span>
+                        <span class="stat-value">${posts}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Likes</span>
+                        <span class="stat-value">${likes}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Views</span>
+                        <span class="stat-value">${views}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="account-card">
+                <h3>Content</h3>
+                <div class="profile-stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Resources</span>
+                        <span class="stat-value">${resources}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Media</span>
+                        <span class="stat-value">${media}</span>
+                    </div>
                 </div>
             </div>
 
