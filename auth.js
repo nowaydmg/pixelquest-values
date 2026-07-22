@@ -67,7 +67,8 @@ async function signOut() {
         console.error('Logout error:', err);
     }
     currentUser = null;
-    window.location.href = 'index.html';
+    // NAPRAWIONE: używamy czystego URL bez .html
+    window.location.href = '/';
 }
 
 function getCurrentUser() {
@@ -108,7 +109,8 @@ async function login() {
     const result = await loginUser(username, password);
     if (result.success) {
         showAuthMessage(result.message, 'success');
-        setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
+        // NAPRAWIONE: używamy czystego URL bez .html
+        setTimeout(() => { window.location.href = '/dashboard'; }, 800);
     } else {
         showAuthMessage(result.message);
         const passwordField = document.getElementById('loginPassword');
@@ -143,7 +145,12 @@ function setAuthMode(mode) {
 function handleEnter(event) { if (event.key === 'Enter') login(); }
 
 async function checkAuth() {
-    if (window.location.pathname.includes('dashboard.html')) {
+    // NAPRAWIONE: sprawdzamy /dashboard zamiast dashboard.html
+    const isDashboard = window.location.pathname === '/dashboard' || 
+                        window.location.pathname === '/dashboard.html' ||
+                        window.location.pathname.endsWith('/dashboard');
+
+    if (isDashboard) {
         try {
             const data = await api('GET', '/api/auth/session');
             if (data.error || !data.user) { signOut(); return; }
@@ -156,7 +163,8 @@ async function checkAuth() {
         try {
             const data = await api('GET', '/api/auth/session');
             if (data.user && !data.error) {
-                window.location.href = 'dashboard.html';
+                // NAPRAWIONE: używamy czystego URL bez .html
+                window.location.href = '/dashboard';
             }
         } catch {
             // Not authenticated, stay on login page
@@ -174,10 +182,10 @@ async function initDashboard() {
 
     const userInfoSpan = document.getElementById('userInfo');
     let roleBadge = '';
-if (role && role !== 'user') {
-    const roleClass = role.replace(/\s+/g, '-');
-    roleBadge = ` <span class="role-badge role-${roleClass}">${role.toUpperCase()}</span>`;
-}
+    if (role && role !== 'user') {
+        const roleClass = role.replace(/\s+/g, '-');
+        roleBadge = ` <span class="role-badge role-${roleClass}">${role.toUpperCase()}</span>`;
+    }
     if (userInfoSpan) userInfoSpan.innerHTML = `Player: <strong>${username}</strong>${roleBadge}`;
 
     const adminCol = document.getElementById('adminCol');
@@ -186,18 +194,15 @@ if (role && role !== 'user') {
     const adminModerationNavBtn = document.getElementById('adminModerationNavBtn');
     const roleManagerNavBtn = document.getElementById('roleManagerNavBtn');
 
-    // Value manager + admin + owner mają dostęp do Admin Control i kolumny Action
     if (['value manager', 'admin', 'owner'].includes(role)) {
         if (adminCol) adminCol.style.display = 'table-cell';
         if (adminControlNavBtn) adminControlNavBtn.style.display = 'inline-block';
     }
 
-    // Moderator + admin + owner mają dostęp do Report
     if (['moderator', 'admin', 'owner'].includes(role)) {
         if (reportNavBtn) reportNavBtn.style.display = 'inline-block';
     }
 
-    // Tylko admin + owner mają Admin Moderation i Role Manager
     if (role === 'admin' || role === 'owner') {
         if (adminModerationNavBtn) adminModerationNavBtn.style.display = 'inline-block';
         if (roleManagerNavBtn) roleManagerNavBtn.style.display = 'inline-block';
