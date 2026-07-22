@@ -176,6 +176,8 @@ async function initDashboard() {
     let roleBadge = '';
     if (role === 'admin') roleBadge = ' <span class="admin-badge">⚡ ADMIN ⚡</span>';
     else if (role === 'owner') roleBadge = ' <span class="admin-badge">🌟 OWNER 🌟</span>';
+    else if (role === 'value manager') roleBadge = ' <span class="admin-badge">💎 VALUE MANAGER 💎</span>';
+    else if (role === 'moderator') roleBadge = ' <span class="admin-badge">🛡️ MODERATOR 🛡️</span>';
     if (userInfoSpan) userInfoSpan.innerHTML = `Player: <strong>${username}</strong>${roleBadge}`;
 
     const adminCol = document.getElementById('adminCol');
@@ -184,10 +186,19 @@ async function initDashboard() {
     const adminModerationNavBtn = document.getElementById('adminModerationNavBtn');
     const roleManagerNavBtn = document.getElementById('roleManagerNavBtn');
 
-    if (role === 'admin' || role === 'owner') {
+    // Value manager + admin + owner mają dostęp do Admin Control i kolumny Action
+    if (['value manager', 'admin', 'owner'].includes(role)) {
         if (adminCol) adminCol.style.display = 'table-cell';
-        if (reportNavBtn) reportNavBtn.style.display = 'inline-block';
         if (adminControlNavBtn) adminControlNavBtn.style.display = 'inline-block';
+    }
+
+    // Moderator + admin + owner mają dostęp do Report
+    if (['moderator', 'admin', 'owner'].includes(role)) {
+        if (reportNavBtn) reportNavBtn.style.display = 'inline-block';
+    }
+
+    // Tylko admin + owner mają Admin Moderation i Role Manager
+    if (role === 'admin' || role === 'owner') {
         if (adminModerationNavBtn) adminModerationNavBtn.style.display = 'inline-block';
         if (roleManagerNavBtn) roleManagerNavBtn.style.display = 'inline-block';
     }
