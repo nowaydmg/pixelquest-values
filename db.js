@@ -2,16 +2,13 @@
 
 let apiCsrfToken = null;
 
-async function getCsrfToken() {
-    try {
-        const res = await fetch('/api/auth/csrf', { credentials: 'include' });
-        const data = await res.json();
-        apiCsrfToken = data.csrfToken;
-        return apiCsrfToken;
-    } catch (err) {
-        console.error('Failed to get CSRF token:', err);
-        return null;
-    }
+async function getApiCsrfToken() {
+    const res = await fetch('/api/auth/csrf', { credentials: 'include' });
+    if (!res.ok) throw new Error(`Nie udało się pobrać tokenu CSRF: HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data.csrfToken) throw new Error('Backend nie zwrócił tokenu CSRF.');
+    apiCsrfToken = data.csrfToken;
+    return apiCsrfToken;
 }
 
 function apiHeaders() {
@@ -19,43 +16,43 @@ function apiHeaders() {
 }
 
 async function apiFetch(method, path, body) {
-    const opts = { method, headers: apiHeaders(), credentials: 'include' };
-    if (body) {
-        if (!apiCsrfToken) await getCsrfToken();
-        opts.body = JSON.stringify({ ...body, csrfToken: apiCsrfToken });
+    const upperMethod = method.toUpperCase();
+    const isMutation = !['GET', 'HEAD'].includes(upperMethod);
+    const opts = { method: upperMethod, headers: apiHeaders(), credentials: 'include' };
+
+    if (isMutation) {
+        if (!apiCsrfToken) await getApiCsrfToken();
+        opts.body = JSON.stringify({ ...(body || {}), csrfToken: apiCsrfToken });
     }
+
     const res = await fetch(path, opts);
+    const data = await res.json().catch(() => ({}));
+
     if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-        throw new Error(err.error || `HTTP ${res.status}`);
+        if (res.status === 403) apiCsrfToken = null;
+        throw new Error(data.error || `HTTP ${res.status}`);
     }
-    const data = await res.json();
-    if (data.csrfToken) {
-        apiCsrfToken = data.csrfToken;
-    }
+
+    if (data.csrfToken) apiCsrfToken = data.csrfToken;
     return data;
 }
 
 // --- Items ---
 
 async function getItems() {
-    try { return await apiFetch('GET', '/api/items'); }
-    catch { return []; }
+    return apiFetch('GET', '/api/items');
 }
 
 async function addItem(item) {
-    try { return await apiFetch('POST', '/api/items', item); }
-    catch { return null; }
+    return apiFetch('POST', '/api/items', item);
 }
 
 async function updateItem(id, updates) {
-    try { return await apiFetch('PUT', `/api/items?id=${id}`, updates); }
-    catch { return null; }
+    return apiFetch('PUT', `/api/items?id=${encodeURIComponent(id)}`, updates);
 }
 
 async function deleteItemById(id) {
-    try { return await apiFetch('DELETE', `/api/items?id=${id}`); }
-    catch { return false; }
+    return apiFetch('DELETE', `/api/items?id=${encodeURIComponent(id)}`);
 }
 
 // --- Trade offers ---
@@ -66,8 +63,7 @@ async function getTradeOffers() {
 }
 
 async function addTradeOffer(offer) {
-    try { return await apiFetch('POST', '/api/trades/offers', offer); }
-    catch { return null; }
+    return apiFetch('POST', '/api/trades/offers', offer);
 }
 
 async function deleteTradeOffer(id) {
@@ -83,8 +79,7 @@ async function getTradeRequests() {
 }
 
 async function addTradeRequest(request) {
-    try { return await apiFetch('POST', '/api/trades/requests', request); }
-    catch { return null; }
+    return apiFetch('POST', '/api/trades/requests', request);
 }
 
 async function deleteTradeRequest(id) {
@@ -129,13 +124,27 @@ async function getReports() {
 }
 
 async function addReport(report) {
-    try { return await apiFetch('POST', '/api/reports', report); }
-    catch { return null; }
+    return apiFetch('POST', '/api/reports', report);
 }
 
 async function updateReportStatus(id, status) {
     try { return await apiFetch('PUT', '/api/reports', { id, status }); }
     catch { return false; }
+}
+
+// --- Value suggestions ---
+
+async function getValueSuggestions() {
+    try { return await apiFetch('GET', '/api/users/value-suggestions'); }
+    catch { return []; }
+}
+
+async function addValueSuggestion(suggestion) {
+    return apiFetch('POST', '/api/users/value-suggestions', suggestion);
+}
+
+async function reviewValueSuggestion(id, status) {
+    return apiFetch('PUT', '/api/users/value-suggestions', { id, status });
 }
 
 // --- Player ratings ---
@@ -193,6 +202,14 @@ async function addTransaction(transaction) {
 
 // --- Users ---
 
+async function getMyProfile() {
+    return apiFetch('GET', '/api/users/profile');
+}
+
+async function updateMyProfile(profile) {
+    return apiFetch('PUT', '/api/users/profile', profile);
+}
+
 async function getAllUsers() {
     try { return await apiFetch('GET', '/api/users'); }
     catch { return []; }
@@ -244,6 +261,7 @@ const appData = {
     messages: [],
     notifications: [],
     reports: [],
+    valueSuggestions: [],
     users: [],
     ratings: {},
     achievements: {},
@@ -255,23 +273,46 @@ const appData = {
 async function refreshAppData() {
     const [
         items, tradeOffers, tradeRequests, messages, notifications,
-        reports, users, ratings, achievements, watchlist, transactions, bannedIps
+        reports, valueSuggestions, users, myProfileResponse, ratings,
+        achievements, watchlist, transactions, bannedIps
     ] = await Promise.all([
-        getItems(), getTradeOffers(), getTradeRequests(), getDirectMessages(),
-        getNotifications(), getReports(), getAllUsers(), getPlayerRatings(),
-        getAchievements(), getWatchlist(), getTransactionHistory(), getBannedIps()
+        getItems().catch(() => []),
+        getTradeOffers().catch(() => []),
+        getTradeRequests().catch(() => []),
+        getDirectMessages().catch(() => []),
+        getNotifications().catch(() => []),
+        getReports().catch(() => []),
+        getValueSuggestions().catch(() => []),
+        getAllUsers().catch(() => []),
+        getMyProfile().catch(() => null),
+        getPlayerRatings().catch(() => {}),
+        getAchievements().catch(() => {}),
+        getWatchlist().catch(() => {}),
+        getTransactionHistory().catch(() => []),
+        getBannedIps().catch(() => [])
     ]);
 
-    appData.items = items;
-    appData.tradeOffers = tradeOffers;
-    appData.tradeRequests = tradeRequests;
-    appData.messages = messages;
-    appData.notifications = notifications;
-    appData.reports = reports;
-    appData.users = users;
-    appData.ratings = ratings;
-    appData.achievements = achievements;
-    appData.watchlist = watchlist;
-    appData.transactions = transactions;
-    appData.bannedIps = bannedIps;
+    appData.items = Array.isArray(items) ? items : [];
+    appData.tradeOffers = Array.isArray(tradeOffers) ? tradeOffers : [];
+    appData.tradeRequests = Array.isArray(tradeRequests) ? tradeRequests : [];
+    appData.messages = Array.isArray(messages) ? messages : [];
+    appData.notifications = Array.isArray(notifications) ? notifications : [];
+    appData.reports = Array.isArray(reports) ? reports : [];
+    appData.valueSuggestions = Array.isArray(valueSuggestions) ? valueSuggestions : [];
+    appData.users = Array.isArray(users) ? users : [];
+    appData.ratings = ratings || {};
+    appData.achievements = achievements || {};
+    appData.watchlist = watchlist || {};
+    appData.transactions = Array.isArray(transactions) ? transactions : [];
+    appData.bannedIps = Array.isArray(bannedIps) ? bannedIps : [];
+
+    const myProfile = myProfileResponse?.user || myProfileResponse;
+    if (myProfile?.username) {
+        const index = appData.users.findIndex(u => u.username === myProfile.username);
+        if (index >= 0) {
+            appData.users[index] = { ...appData.users[index], ...myProfile };
+        } else {
+            appData.users.push(myProfile);
+        }
+    }
 }
