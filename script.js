@@ -434,7 +434,7 @@ function renderAdminPanel() {
     const userSummary = document.getElementById('adminUserSummary');
     const userDatabase = document.getElementById('adminUserDatabase');
 
-    const users = appData.users.filter(u => u.username !== currentUser);
+    const users = appData.users;
     if (userSelect) {
         userSelect.innerHTML = users.length
             ? users.map(u => `<option value="${u.username}">${u.username} (${u.role})</option>`).join('')
@@ -488,7 +488,7 @@ function renderRoleManager() {
     const roleList = document.getElementById('roleManagerList');
     if (!userSelect || !roleList) return;
     const users = appData.users;
-    userSelect.innerHTML = users.filter(u => u.username !== currentUser).map(u => `<option value="${u.username}">${u.username}</option>`).join('') || '<option value="">No players available</option>';
+    userSelect.innerHTML = users.map(u => `<option value="${u.username}">${u.username}</option>`).join('') || '<option value="">No players available</option>';
     roleList.innerHTML = users.map(u => `<div class="role-row"><span>${u.username}</span><span class="role-badge">${u.role}</span></div>`).join('');
 }
 
