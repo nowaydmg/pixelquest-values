@@ -455,7 +455,7 @@ function renderRoleManager() {
     if (!userSelect || !roleList) return;
     const users = appData.users;
     userSelect.innerHTML = users.map(u => `<option value="${u.username}">${u.username}</option>`).join('') || '<option value="">No players available</option>';
-    roleList.innerHTML = users.map(u => `<div class="role-row"><span>${u.username}</span><span class="role-badge">${u.role}</span></div>`).join('');
+    roleList.innerHTML = users.map(u => `<div class="role-row"><span>${u.username}</span><span class="role-badge role-${u.role.replace(/\s+/g, '-')}">${u.role}</span></div>`).join('');
 }
 
 async function handleAssignRole() {
@@ -496,7 +496,7 @@ function renderAccount() {
                 <div class="profile-avatar">${avatarHtml}</div>
                 <div class="profile-info">
                     <h2>${sanitizeText(currentUser)}</h2>
-                    <span class="role-badge">${userRole}</span>
+                    <span class="role-badge role-${userRole.replace(/\s+/g, '-')}">${userRole}</span>
                     <p>${sanitizeText(profile?.bio || 'No player bio yet.')}</p>
                 </div>
             </div>
