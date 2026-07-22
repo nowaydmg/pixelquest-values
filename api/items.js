@@ -2,6 +2,14 @@ import { sql, sqlRun } from '../lib/turso.js';
 import { getUserFromRequest, cors, json, validateInput } from '../lib/auth.js';
 import { randomUUID } from 'crypto';
 
+export const config = {
+    api: {
+        bodyParser: {
+            sizeLimit: '5mb'
+        }
+    }
+};
+
 export default async function handler(req, res) {
     cors(res);
     if (req.method === 'OPTIONS') return res.status(200).end();
@@ -28,7 +36,7 @@ export default async function handler(req, res) {
     // POST /api/items (create)
     if (path === '' && req.method === 'POST') {
         const user = await getUserFromRequest(req);
-        if (!user || !['admin', 'owner'].includes(user.role)) return json(res, 403, { error: 'Forbidden' });
+        if (!user || !['value manager', 'admin', 'owner'].includes(user.role)) return json(res, 403, { error: 'Forbidden' });
 
         const { icon, name, corruptedPages, tier, rarity, type } = req.body || {};
         if (!name || !type) return json(res, 400, { error: 'Name and type required' });
@@ -52,7 +60,7 @@ export default async function handler(req, res) {
     // PUT /api/items?id=xxx (update)
     if (path === '' && req.method === 'PUT' && id) {
         const user = await getUserFromRequest(req);
-        if (!user || !['admin', 'owner'].includes(user.role)) return json(res, 403, { error: 'Forbidden' });
+        if (!user || !['value manager', 'admin', 'owner'].includes(user.role)) return json(res, 403, { error: 'Forbidden' });
 
         const { icon, name, corruptedPages, tier, rarity, type } = req.body || {};
         try {
@@ -77,7 +85,7 @@ export default async function handler(req, res) {
     // DELETE /api/items?id=xxx (delete)
     if (path === '' && req.method === 'DELETE' && id) {
         const user = await getUserFromRequest(req);
-        if (!user || !['admin', 'owner'].includes(user.role)) return json(res, 403, { error: 'Forbidden' });
+        if (!user || !['value manager', 'admin', 'owner'].includes(user.role)) return json(res, 403, { error: 'Forbidden' });
 
         try {
             await sqlRun('DELETE FROM items WHERE id = ?', id);
