@@ -174,10 +174,10 @@ async function initDashboard() {
 
     const userInfoSpan = document.getElementById('userInfo');
     let roleBadge = '';
-    if (role === 'admin') roleBadge = ' <span class="admin-badge">⚡ ADMIN ⚡</span>';
-    else if (role === 'owner') roleBadge = ' <span class="admin-badge">🌟 OWNER 🌟</span>';
-    else if (role === 'value manager') roleBadge = ' <span class="admin-badge">💎 VALUE MANAGER 💎</span>';
-    else if (role === 'moderator') roleBadge = ' <span class="admin-badge">🛡️ MODERATOR 🛡️</span>';
+if (role && role !== 'user') {
+    const roleClass = role.replace(/\s+/g, '-');
+    roleBadge = ` <span class="role-badge role-${roleClass}">${role.toUpperCase()}</span>`;
+}
     if (userInfoSpan) userInfoSpan.innerHTML = `Player: <strong>${username}</strong>${roleBadge}`;
 
     const adminCol = document.getElementById('adminCol');
