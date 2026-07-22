@@ -3,6 +3,7 @@
 let currentSort = { key: 'corruptedPages', direction: 'desc' };
 let editingItemId = null;
 let uploadedItemImage = null;
+let editModalImage = null;
 
 const ACHIEVEMENTS = {
     FIRST_TRADE: 'First Trade',
@@ -11,8 +12,6 @@ const ACHIEVEMENTS = {
     HELPER: 'Helper',
     COLLECTOR: 'Collector'
 };
-
-// --- utilities ---
 
 function showToast(title, message, type = 'info') {
     const container = document.getElementById('toastContainer');
@@ -46,31 +45,14 @@ function isSafeString(input) {
 
 function isAllowedImageSource(source) {
     if (!source) return false;
-    return (
-        /^https:\/\//i.test(source) ||
-        /^data:image\/(png|jpeg|webp);base64,/i.test(source)
-    );
+    return /^https:\/\//i.test(source) || /^data:image\/(png|jpeg|webp);base64,/i.test(source);
 }
 
-function getRegisteredUsers() {
-    return appData.users.map(u => u.username);
-}
-
-function getNotificationsForUser(user) {
-    return appData.notifications.filter(n => n.to === user || n.to === 'all');
-}
-
-function getPendingReports() {
-    return appData.reports.filter(r => r.status === 'pending');
-}
-
-function hasAchievement(username, achievementId) {
-    return appData.achievements[username]?.includes(achievementId) || false;
-}
-
-function isWatched(username, itemName) {
-    return appData.watchlist[username]?.includes(itemName) || false;
-}
+function getRegisteredUsers() { return appData.users.map(u => u.username); }
+function getNotificationsForUser(user) { return appData.notifications.filter(n => n.to === user || n.to === 'all'); }
+function getPendingReports() { return appData.reports.filter(r => r.status === 'pending'); }
+function hasAchievement(username, achievementId) { return appData.achievements[username]?.includes(achievementId) || false; }
+function isWatched(username, itemName) { return appData.watchlist[username]?.includes(itemName) || false; }
 
 function getUserAvatar(username) {
     const colors = ['#8b5cf6', '#3b82f6', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#06b6d4'];
@@ -113,8 +95,6 @@ function populateValueFilters() {
     });
 }
 
-// --- main load ---
-
 async function loadTableData(userRole) {
     await refreshAppData();
     const sortedItems = sortItems(appData.items, currentSort.key, currentSort.direction);
@@ -138,8 +118,6 @@ async function loadTableData(userRole) {
 async function reloadDashboard() {
     await loadTableData(getUserRole());
 }
-
-// --- notifications ---
 
 function renderNotifications() {
     const notificationList = document.getElementById('notificationList');
@@ -185,8 +163,6 @@ async function clearNotificationHandler(id) {
     await reloadDashboard();
 }
 
-// --- suggestions ---
-
 function renderValueSuggestions() {
     const itemSelect = document.getElementById('suggestionItemSelect');
     const list = document.getElementById('suggestionsList');
@@ -205,8 +181,8 @@ function renderValueSuggestions() {
             <div class="trade-offer-header"><strong>${sanitizeText(suggestion.itemName)} → ${sanitizeText(String(suggestion.proposedCp))} CP</strong><span class="report-status ${suggestion.status}">${sanitizeText(suggestion.status)}</span></div>
             <div>${sanitizeText(suggestion.reason)}</div>
             <div class="trade-offer-meta"><span>By ${sanitizeText(suggestion.suggester)}</span><span>${new Date(suggestion.createdAt).toLocaleString('pl-PL')}</span></div>
-            ${reviewer && suggestion.status === 'pending' ? `<div class="trade-actions"><button class="btn btn-primary btn-small" type="button" onclick="reviewSuggestion('${suggestion.id}', 'approved')">Approve${['value manager', 'admin', 'owner'].includes(getUserRole()) ? ' & apply' : ''}</button><button class="btn btn-secondary btn-small" type="button" onclick="reviewSuggestion('${suggestion.id}', 'rejected')">Reject</button></div>` : ''}
-        </div>`).join('') : '<div class="trade-empty">No suggestions yet. Be the first to help improve the guide.</div>';
+            ${reviewer && suggestion.status === 'pending' ? `<div class="trade-actions"><button class="btn btn-primary btn-small" type="button" onclick="reviewSuggestion('${suggestion.id}', 'approved')">Approve</button><button class="btn btn-secondary btn-small" type="button" onclick="reviewSuggestion('${suggestion.id}', 'rejected')">Reject</button></div>` : ''}
+        </div>`).join('') : '<div class="trade-empty">No suggestions yet.</div>';
 }
 
 async function submitValueSuggestion() {
@@ -234,8 +210,6 @@ async function reviewSuggestion(id, status) {
         showToast('Review failed', error.message || 'Try again shortly.', 'error');
     }
 }
-
-// --- reports ---
 
 function renderReportTargets() {
     const currentUser = getCurrentUser();
@@ -315,8 +289,6 @@ function renderReportSection() {
         : '<div class="trade-empty">No reports available.</div>';
 }
 
-// --- leaderboard ---
-
 function renderLeaderboard() {
     const leaderboardList = document.getElementById('leaderboardList');
     if (!leaderboardList) return;
@@ -349,8 +321,6 @@ function renderLeaderboard() {
         }).join('')
         : '<div class="trade-empty">No ratings yet. Complete trades to get rated!</div>';
 }
-
-// --- messages ---
 
 function renderMessages() {
     const messagesList = document.getElementById('messagesList');
@@ -425,10 +395,7 @@ async function quickReply(username) {
     showToast('Success', 'Message sent!', 'success');
 }
 
-// --- admin ---
-
 function renderAdminPanel() {
-    const currentUser = getCurrentUser();
     const userSelect = document.getElementById('adminUserSelect');
     const bannedList = document.getElementById('bannedIpList');
     const userSummary = document.getElementById('adminUserSummary');
@@ -483,7 +450,6 @@ async function handleAdminWarn() {
 }
 
 function renderRoleManager() {
-    const currentUser = getCurrentUser();
     const userSelect = document.getElementById('roleUserSelect');
     const roleList = document.getElementById('roleManagerList');
     if (!userSelect || !roleList) return;
@@ -506,8 +472,6 @@ async function handleAssignRole() {
         showToast('Error', 'Failed to update role.', 'error');
     }
 }
-
-// --- account ---
 
 function renderAccount() {
     const accountContent = document.getElementById('accountContent');
@@ -571,27 +535,21 @@ function renderAccount() {
         </div>`;
 }
 
-// Przechowuje tymczasowo nowe base64 przed zapisem
 let pendingAvatarDataUrl = null;
 
 async function saveProfile() {
     const urlInput = document.getElementById('profileAvatarUrl')?.value.trim() || '';
     const bio = document.getElementById('profileBio')?.value.trim() || '';
-
-    // Priorytet: plik wgrany przez użytkownika > URL wpisany ręcznie
     let avatarUrl = pendingAvatarDataUrl || urlInput;
-
-    // Jeśli URL jest wpisany ręcznie, musi zaczynać się od https://
     if (!pendingAvatarDataUrl && urlInput && !/^https:\/\//i.test(urlInput)) {
         showToast('Invalid URL', 'Avatar URL must start with https://', 'error');
         return;
     }
-
     try {
         await updateMyProfile({ avatarUrl, bio });
         pendingAvatarDataUrl = null;
         await reloadDashboard();
-        showToast('Profile updated', 'Your avatar and bio are now visible to other players.', 'success');
+        showToast('Profile updated', 'Your profile is now visible to other players.', 'success');
     } catch (error) {
         showToast('Profile not saved', error.message || 'Please check the avatar URL.', 'error');
     }
@@ -600,22 +558,18 @@ async function saveProfile() {
 function handleAvatarUpload(event) {
     const file = event.target.files?.[0];
     if (!file) return;
-
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
         showToast('Avatar not accepted', 'Choose a PNG, JPG, or WebP image.', 'error');
         event.target.value = '';
         return;
     }
-
     if (file.size > 8 * 1024 * 1024) {
         showToast('File too large', 'Maximum avatar size is 8 MB.', 'error');
         event.target.value = '';
         return;
     }
-
     const objectUrl = URL.createObjectURL(file);
     const image = new Image();
-
     image.onload = () => {
         const size = 256;
         const scale = Math.min(size / image.width, size / image.height, 1);
@@ -623,24 +577,18 @@ function handleAvatarUpload(event) {
         canvas.width = Math.max(1, Math.round(image.width * scale));
         canvas.height = Math.max(1, Math.round(image.height * scale));
         canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
-
         pendingAvatarDataUrl = canvas.toDataURL('image/webp', 0.82);
         URL.revokeObjectURL(objectUrl);
-
-        // Pokaż podgląd
         const preview = document.getElementById('profileAvatarPreview');
         if (preview) {
             preview.innerHTML = `<img src="${pendingAvatarDataUrl}" style="width:64px;height:64px;object-fit:cover;border-radius:50%;" alt="Avatar preview">`;
         }
-
         showToast('Avatar ready', 'Click Save profile to publish your new avatar.', 'info');
     };
-
     image.onerror = () => {
         URL.revokeObjectURL(objectUrl);
         showToast('Image error', 'Could not read the selected image.', 'error');
     };
-
     image.src = objectUrl;
 }
 
@@ -659,8 +607,6 @@ async function toggleUserBan(username, currentlyBanned) {
     await reloadDashboard();
     showToast(currentlyBanned ? 'User unbanned' : 'User banned', `${username}'s account was updated.`, 'success');
 }
-
-// --- items table ---
 
 function getIconHtml(item) {
     if (!item.icon) return '<span class="item-icon">✦</span>';
@@ -751,7 +697,6 @@ async function handleItemImageUpload(event) {
     uploadedItemImage = null;
     if (preview) preview.innerHTML = '';
     if (!file) return;
-
     const accepted = ['image/png', 'image/jpeg', 'image/webp'];
     if (!accepted.includes(file.type)) {
         event.target.value = '';
@@ -763,7 +708,6 @@ async function handleItemImageUpload(event) {
         showToast('File too large', 'Maximum image size is 8 MB.', 'error');
         return;
     }
-
     try {
         uploadedItemImage = await resizeImageFile(file, { maxWidth: 512, maxHeight: 512, quality: 0.8 });
         if (preview) preview.innerHTML = `<img src="${uploadedItemImage}" alt="Item preview" style="max-width:120px;max-height:120px;border-radius:8px;">`;
@@ -776,8 +720,6 @@ async function handleItemImageUpload(event) {
 
 async function saveItem() {
     const saveBtn = document.getElementById('saveItemBtn');
-    const wasEditing = Boolean(editingItemId);
-
     const icon = document.getElementById('itemIcon')?.value.trim() || '';
     const name = document.getElementById('itemName')?.value.trim() || '';
     const corruptedPages = document.getElementById('itemCorruptedPages')?.value.trim() || '';
@@ -800,51 +742,116 @@ async function saveItem() {
     };
 
     try {
-        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = wasEditing ? 'Saving...' : 'Adding...'; }
-
-        let result;
-        if (wasEditing) {
-            result = await updateItem(editingItemId, payload);
-        } else {
-            result = await addItem(payload);
-        }
-
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Adding...'; }
+        const result = await addItem(payload);
         if (!result) throw new Error('No response from server.');
-
         resetForm();
         await reloadDashboard();
-        showToast('Success', wasEditing ? 'Item updated.' : 'Item added.', 'success');
+        showToast('Success', 'Item added.', 'success');
     } catch (error) {
         console.error('saveItem error:', error);
         showToast('Save failed', error.message || 'Check your connection.', 'error');
-        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = wasEditing ? 'Save changes' : 'Add item'; }
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Add item'; }
     }
 }
+
+// EDIT MODAL
 
 function startEditItem(id) {
     const item = appData.items.find(i => i.id === id);
     if (!item) return;
-    editingItemId = id;
-    document.getElementById('itemIcon').value = item.icon && !isAllowedImageSource(item.icon) ? item.icon : '';
-    document.getElementById('itemName').value = item.name || '';
-    document.getElementById('itemCorruptedPages').value = item.corruptedPages ?? '';
-    document.getElementById('itemTier').value = item.tier || '';
-    document.getElementById('itemType').value = item.type || '';
-    document.getElementById('itemRarity').value = item.rarity || 'Common';
-    uploadedItemImage = isAllowedImageSource(item.icon) ? item.icon : null;
-    const preview = document.getElementById('itemImagePreview');
-    if (preview) preview.innerHTML = uploadedItemImage ? `<img src="${uploadedItemImage}" alt="Preview" style="max-width:120px;max-height:120px;border-radius:8px;">` : '';
-    const saveBtn = document.getElementById('saveItemBtn');
-    if (saveBtn) saveBtn.textContent = 'Save changes';
 
-    // Przewiń do formularza
-    document.getElementById('admin-control-section')?.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('editItemId').value = id;
+    document.getElementById('editItemIcon').value = item.icon && !isAllowedImageSource(item.icon) ? item.icon : '';
+    document.getElementById('editItemName').value = item.name || '';
+    document.getElementById('editItemCorruptedPages').value = item.corruptedPages ?? '';
+    document.getElementById('editItemTier').value = item.tier || '';
+    document.getElementById('editItemType').value = item.type || '';
+    document.getElementById('editItemRarity').value = item.rarity || 'Common';
+
+    editModalImage = isAllowedImageSource(item.icon) ? item.icon : null;
+    const preview = document.getElementById('editItemImagePreview');
+    if (preview) preview.innerHTML = editModalImage ? `<img src="${editModalImage}" alt="Preview" style="max-width:120px;max-height:120px;border-radius:8px;">` : '';
+
+    const upload = document.getElementById('editItemImageUpload');
+    if (upload) upload.value = '';
+
+    document.getElementById('editItemModal').style.display = 'flex';
+}
+
+function closeEditItemModal() {
+    document.getElementById('editItemModal').style.display = 'none';
+    editModalImage = null;
+}
+
+async function handleEditItemImageUpload(event) {
+    const file = event.target.files?.[0];
+    const preview = document.getElementById('editItemImagePreview');
+    editModalImage = null;
+    if (preview) preview.innerHTML = '';
+    if (!file) return;
+    const accepted = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!accepted.includes(file.type)) {
+        event.target.value = '';
+        showToast('Invalid file', 'Choose a PNG, JPG, or WebP image.', 'error');
+        return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+        event.target.value = '';
+        showToast('File too large', 'Maximum image size is 8 MB.', 'error');
+        return;
+    }
+    try {
+        editModalImage = await resizeImageFile(file, { maxWidth: 512, maxHeight: 512, quality: 0.8 });
+        if (preview) preview.innerHTML = `<img src="${editModalImage}" alt="Preview" style="max-width:120px;max-height:120px;border-radius:8px;">`;
+    } catch (err) {
+        event.target.value = '';
+        editModalImage = null;
+        showToast('Image error', err.message || 'Could not process image.', 'error');
+    }
+}
+
+async function saveEditItem() {
+    const id = document.getElementById('editItemId').value;
+    const icon = document.getElementById('editItemIcon').value.trim();
+    const name = document.getElementById('editItemName').value.trim();
+    const cp = document.getElementById('editItemCorruptedPages').value.trim();
+    const tier = document.getElementById('editItemTier').value.trim();
+    const rarity = document.getElementById('editItemRarity').value || 'Common';
+    const type = document.getElementById('editItemType').value.trim();
+
+    if (!name || !type) {
+        showToast('Missing fields', 'Name and Type are required.', 'error');
+        return;
+    }
+
+    const payload = {
+        icon: editModalImage || icon || '✦',
+        name,
+        corruptedPages: cp === '' ? null : Number(cp),
+        tier,
+        rarity,
+        type
+    };
+
+    const btn = document.getElementById('saveEditItemBtn');
+    try {
+        if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+        const result = await updateItem(id, payload);
+        if (!result) throw new Error('No response from server.');
+        closeEditItemModal();
+        await reloadDashboard();
+        showToast('Success', 'Item updated.', 'success');
+    } catch (error) {
+        showToast('Save failed', error.message || 'Check your connection.', 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Save changes'; }
+    }
 }
 
 async function deleteItem(id) {
     if (!confirm('>>> REMOVE ITEM? <<<')) return;
     await deleteItemById(id);
-    if (editingItemId === id) resetForm();
     await reloadDashboard();
     showToast('Success', 'Item removed.', 'success');
 }
@@ -877,8 +884,6 @@ function filterTable() {
         row.style.display = matches ? '' : 'none';
     });
 }
-
-// --- trade ---
 
 function renderTradePlace() {
     const items = appData.items;
@@ -1010,8 +1015,6 @@ async function deleteTradeRequestHandler(id) {
     showToast('Success', 'Request deleted.', 'success');
 }
 
-// --- DM modal ---
-
 function startDm(recipient) {
     const modal = document.getElementById('dmModal');
     document.getElementById('dmModalRecipient').value = recipient;
@@ -1035,8 +1038,6 @@ async function sendDmFromModal() {
     await reloadDashboard();
     showToast('Success', 'Message sent!', 'success');
 }
-
-// --- misc UI ---
 
 function updateLastUpdate() {
     const el = document.getElementById('lastUpdate');
@@ -1109,6 +1110,8 @@ function initDashboardControls() {
     document.getElementById('saveItemBtn')?.addEventListener('click', saveItem);
     document.getElementById('cancelEditBtn')?.addEventListener('click', resetForm);
     document.getElementById('itemImageUpload')?.addEventListener('change', handleItemImageUpload);
+    document.getElementById('saveEditItemBtn')?.addEventListener('click', saveEditItem);
+    document.getElementById('editItemImageUpload')?.addEventListener('change', handleEditItemImageUpload);
     document.getElementById('createTradeOfferBtn')?.addEventListener('click', createTradeOffer);
     document.getElementById('createTradeRequestBtn')?.addEventListener('click', createTradeRequest);
     document.getElementById('assignRoleBtn')?.addEventListener('click', handleAssignRole);
@@ -1131,7 +1134,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setTheme(localStorage.getItem('theme') || 'dark');
 });
 
-// Window exports
 window.loadTableData = loadTableData;
 window.clearNotification = clearNotificationHandler;
 window.handleReportOutcome = handleReportOutcome;
@@ -1145,6 +1147,7 @@ window.handleAdminWarnUser = handleAdminWarnUser;
 window.toggleUserBan = toggleUserBan;
 window.handleAssignRole = handleAssignRole;
 window.startEditItem = startEditItem;
+window.closeEditItemModal = closeEditItemModal;
 window.deleteItem = deleteItem;
 window.createTradeOffer = createTradeOffer;
 window.createTradeRequest = createTradeRequest;
